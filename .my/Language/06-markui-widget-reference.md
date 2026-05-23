@@ -549,9 +549,9 @@ Home \ Products \ Electronics \ Laptops
 [<] 1 2 [[3]] 4 5 ... 10 [>]
 ```
 
-### Accordion / Expander
+### Accordion
 
-Accordion sections are button + optional content box, separated by blank lines:
+Multiple collapsible sections grouped together, separated by blank lines:
 
 ```
 [^ Section 1]
@@ -567,6 +567,19 @@ Accordion sections are button + optional content box, separated by blank lines:
 `[^ Header]` = expanded (content below in open-right box). `[v Header]` = collapsed (button only).
 
 `v` = closed, `^` = open — consistent with dropdown `<v ...>` / `<^ ...>`.
+
+### Expander
+
+A single collapsible section, not grouped with siblings:
+
+```
+[^ Advanced Settings]
+|  Timeout: [- 30 +]
+|  Retries: [- 3 +]
++--+
+```
+
+Same syntax as accordion — `[^ ...]` / `[v ...]` — but used standalone.
 
 ### Tree View
 

@@ -1,7 +1,7 @@
-# MarkUI Specification v0.1 — First Draft
+# MarkUI Specification
 
-**Date:** 2026-05-21
-**Status:** Draft
+**Date:** 2026-05-22
+**Status:** v3.1
 
 ---
 
@@ -11,7 +11,7 @@ MarkUI is an ASCII-native UI language where **the ASCII you type IS the UI**. Th
 
 1. **Human-readable design** — A developer reads a `.markui` file and sees the UI.
 2. **Machine-parseable source** — A parser extracts a widget tree, layout structure, and semantics.
-3. **Interactive runtime** — The document runs: buttons click, checkboxes toggle, expanders expand.
+3. **Interactive runtime** — The document runs: buttons click, checkboxes toggle, accordions expand.
 
 MarkUI documents can also be compiled to real UI frameworks (WPF, MAUI, HTML/CSS, etc.) via code generation backends.
 
@@ -19,95 +19,119 @@ MarkUI documents can also be compiled to real UI frameworks (WPF, MAUI, HTML/CSS
 
 ## 2. Core Principles
 
-| Principle                     | Meaning                                                                  |
-| ----------------------------- | ------------------------------------------------------------------------ |
-| **ASCII is the UI**     | What you type is what you see. No rendering pipeline.                    |
-| **Monospaced always**   | Everything assumes a fixed-width font. Alignment is spatial.             |
-| **Boxes are layout**    | Unicode box-drawing characters define containers and structure.          |
-| **Glyphs are widgets**  | Inline ASCII patterns are the widget vocabulary. No tags, no attributes. |
-| **Readable first**      | If a feature makes the ASCII unreadable, it's wrong.                     |
-| **Nesting with limits** | Boxes can contain boxes, but practical depth is 2–3 levels.             |
+| Principle              | Meaning                                                                  |
+|------------------------|--------------------------------------------------------------------------|
+| **ASCII is the UI**    | What you type is what you see. No rendering pipeline.                    |
+| **Monospaced always**  | Everything assumes a fixed-width font. Alignment is spatial.             |
+| **Boxes are layout**   | ASCII box characters (`+`, `-`, `|`) define containers and structure.    |
+| **Glyphs are widgets** | Inline ASCII patterns are the widget vocabulary. No tags, no attributes. |
+| **Readable first**     | If a feature makes the ASCII unreadable, it's wrong.                     |
+| **No modifiers**       | No disabled, required, error, read-only, or stretch markers.             |
 
 ---
 
 ## 3. File Format
 
 - Extension: `.markui`
-- Encoding: UTF-8
+- Encoding: UTF-8, pure ASCII
 - All content is monospaced
-- A file represents one screen, panel, or component
+- One screen per file, no prose text
+- Multiple screens or explanatory text: use `.md` files with ` ```markui ` fenced blocks
+- Named blocks in `.md` files: ` ```markui:component-name ` makes blocks referenceable as `@component-name`
+- Icon meanings (`#N`) are defined in surrounding `.md` context, not inside wireframes
 
 ---
 
-## 4. Multi-Column Layout — Proposals
+## 4. Layout
 
-This is the most open design area. Three proposals follow.
+### Vertical and Horizontal
 
-### Proposal A: Side-by-Side Boxes
-
-Columns are separate boxes placed horizontally adjacent:
-
-```
-┌─── Left ──────────┐ ┌─── Right ─────────┐
-│ [Connect]         │ │ Status: Online    │
-│ [Disconnect]      │ │ Ping: 42ms        │
-└───────────────────┘ └───────────────────┘
-```
-
-**Pros:** Simple, no new syntax, each column is an independent box.
-**Cons:** Hard to express that they're *siblings* in the same row. Fragile alignment — inserting a line in the left box misaligns the right.
-
-### Proposal B: Column Dividers Inside a Box
-
-A single box with internal `│` column dividers, using T-junctions at top and bottom:
+- Widgets on **separate lines** = vertical flow (default)
+- Widgets on the **same line** = horizontal layout; spacing is the gap
 
 ```
-┌─── Left ──────────┬─── Right ─────────┐
-│ [Connect]         │ Status: Online    │
-│ [Disconnect]      │ Ping: 42ms        │
-└───────────────────┴───────────────────┘
+[Save]  [Cancel]  [Delete]
 ```
 
-**Pros:** Columns are explicitly part of the same container. Alignment is enforced by the divider character position. Rows are visually linked.
-**Cons:** Adding/removing columns requires editing every line. Wider boxes get unwieldy.
-
-### Proposal C: Hybrid
-
-Both mechanisms coexist:
-
-- **Internal dividers** for fine-grained layout within a box (form labels + fields, key-value pairs).
-- **Adjacent boxes** for major page regions (sidebar + main content).
+### Box
 
 ```
-┌─── Sidebar ────────┐ ┌─── Main ──────────────────────────┐
-│ [Nav Item 1]       │ │ ┌─── Form ────────┬─────────────┐ │
-│ [Nav Item 2]       │ │ │ Name:           │ [_________] │ │
-│ [Nav Item 3]       │ │ │ Email:          │ [_________] │ │
-│                    │ │ └─────────────────┴─────────────┘ │
-│                    │ │                                   │
-│                    │ │ [Save]  [Cancel]                  │
-└────────────────────┘ └───────────────────────────────────┘
++--- Title ---+
+| content     |
++-------------+
 ```
 
-**Pros:** Most expressive. Natural mapping to real UI patterns.
-**Cons:** Most complex to parse. Ambiguity about when adjacent boxes are "in the same row" vs. stacked.
+- `+` corners, `-` horizontal border, `|` vertical border
+- Unicode box drawing is accepted as input but ASCII is preferred
 
-### Proposal D: Row Markers
+### Open-Right Shorthand
 
-Explicit syntax to declare a horizontal row of boxes:
+Right `|` is optional — a box can be defined by its left edge only:
 
 ```
-═══ row ═══════════════════════════════════
-┌─── Left ──────────┐ ┌─── Right ────────┐
-│ [Connect]         │ │ Status: Online   │
-└───────────────────┘ └──────────────────┘
-═══ end ═══════════════════════════════════
++--- Title ---+
+|
+|  content
+|
++--+
 ```
 
-**Pros:** Unambiguous grouping. Parser knows which boxes share a row.
-**Cons:** Extra syntax. Adds visual noise.
+### Nested Box Prefix
 
-_**Recommendation:** Start with Proposal B (internal dividers) for v0.1. It's the most natural ASCII representation and easiest to parse. Add Proposal A (adjacent boxes) later if needed._
+`++` for level 2, `+++` for level 3:
+
+```
++--- Settings ---+
+|
+++--- Profile ---+
+
+  content here
+
+++--- Preferences ---+
+
+  more content
+
++--+
+```
+
+### Multi-Column Layout
+
+Columns are boxes with internal `|` dividers:
+
+```
++--------+---------------------+
+| Side   | Main Content        |
+| bar    |                     |
++--------+---------------------+
+```
+
+Adjacent boxes on the same line are also valid for major page regions.
+
+### Special Border Characters
+
+| Char | Role                                        |
+|------|---------------------------------------------|
+| `+`  | All corners and junctions                   |
+| `-`  | Horizontal border                           |
+| `|`  | Vertical border / column divider            |
+| `.`  | Resizable splitter (replaces `-` or `|`)    |
+| `#`  | Scroll indicator (replaces `-` or `|`)      |
+| `*`  | Card/item corner (repeatable element)       |
+
+### Cards
+
+`*` corners distinguish repeatable items from structural boxes:
+
+```
+*--- Product ---*
+| Widget A      |
+| $19.99        |
+*---------------*
+```
+
+### Sizing
+
+Glyph width is the rendered width. No pixel values. Fill behavior is a runtime concern.
 
 ---
 
@@ -115,28 +139,27 @@ _**Recommendation:** Start with Proposal B (internal dividers) for v0.1. It's th
 
 When running interactively (terminal or VS Code panel), the document is live:
 
-| Widget             | Interaction                          |
-| ------------------ | ------------------------------------ |
-| `[Button]`       | Click → fires action                |
-| `[Dropdown v]`   | Click → expands to show options     |
-| `[ ] / [x]`      | Click → toggles check state         |
-| `<on> / <off>`   | Click → toggles state               |
-| `* Radio`        | Click → selects, deselects siblings |
-| `> Expander`     | Click → expands/collapses content   |
-| `[____]`         | Click → enters text editing mode    |
-| `[====····]` | Drag → adjusts value                |
+| Widget                  | Interaction                          |
+|-------------------------|--------------------------------------|
+| `[Button]`              | Click fires action                   |
+| `<v Dropdown>`          | Click expands to show options        |
+| `[ ]` / `[x]`          | Click toggles check state            |
+| `{[on]/off}`            | Click toggles state                  |
+| `(*)`                   | Click selects, deselects siblings    |
+| `[^ Accordion]`         | Click expands/collapses content      |
+| `<____>`                | Click enters text editing mode       |
+| `[=====.....]`          | Drag adjusts value                   |
 
-### 9.1 State
+### State
 
 The file IS the state. When a checkbox is toggled, the file changes from `[ ]` to `[x]`. The document is a live, self-modifying artifact.
 
-### 9.2 Binding (Future)
+### Binding (Future)
 
-How widgets connect to code is deferred to a later version. Possible directions:
+How widgets connect to code is deferred. Possible directions:
 
 - Companion file (e.g., `screen.markui.ts`) with handlers keyed by widget identity
-- Inline annotations (but this risks breaking the "ASCII is the UI" principle)
-- Convention-based naming (widget label → handler function name)
+- Convention-based naming (widget label to handler function name)
 
 ---
 
@@ -144,12 +167,12 @@ How widgets connect to code is deferred to a later version. Possible directions:
 
 MarkUI documents can be compiled to real UI frameworks:
 
-| Target         | Mapping                                                               |
-| -------------- | --------------------------------------------------------------------- |
-| HTML/CSS       | Box →`<div>`, widgets → form elements, layout → CSS Grid/Flexbox |
-| WPF/XAML       | Box →`GroupBox`/`StackPanel`, widgets → WPF controls            |
-| MAUI           | Box → layouts, widgets → MAUI controls                              |
-| Terminal (TUI) | Direct rendering with box-drawing characters                          |
+| Target         | Mapping                                                          |
+|----------------|------------------------------------------------------------------|
+| HTML/CSS       | Box to `<div>`, widgets to form elements, layout to CSS Grid     |
+| WPF/XAML       | Box to `GroupBox`/`StackPanel`, widgets to WPF controls          |
+| MAUI           | Box to layouts, widgets to MAUI controls                         |
+| Terminal (TUI) | Direct rendering with box-drawing characters                     |
 
 Code generation is backend-specific. The MarkUI parser produces a **widget tree**, and each backend walks the tree to emit framework code.
 
@@ -157,80 +180,45 @@ Code generation is backend-specific. The MarkUI parser produces a **widget tree*
 
 ## 7. Grammar (Sketch)
 
-A rough grammar for the parser:
-
 ```
-document     = box+
-box          = top-border newline (content-line newline)* bottom-border newline
-top-border   = "┌" ("─" | title | tab-widget)* "┐"
-bottom-border= "└" ("─" | "┴")* "┘"
-content-line = "│" (widget | text | nested-box | column-divider)* "│"
-column-divider = "│"
+document     = (box | prefix-section | content-line)*
+box          = top-border newline (content-line newline)* bottom-border
+top-border   = "+" ("-" | title)* "+"
+bottom-border= "+" "-"* "+"
+content-line = "|" (widget | text | nested-box)* "|"?
 
 widget       = button | dropdown | checkbox | radio | toggle | input
-             | expander | section | slider | separator
+             | accordion | slider | separator | badge | tag | icon
+             | image | link | rating | stepper | spinner
 
 button       = "[" label "]"
-dropdown     = "[" label ("v" | "^") "]"
-checkbox     = "[" (" " | "x") "]" label
-radio        = "*" label
-toggle       = "<" ("on" | "off") ">"
-input        = "[" ("_" | text)+ "]"
-expander     = (">" | "v") label
-section      = "^-" label "-"+
-slider       = "[" "="* "·"* "]" percentage?
-separator    = "─"+
+dropdown     = "<" ("v" | "^") " " label ">"
+checkbox     = "[" (" " | "x" | "-") "]"
+radio        = "(" ("*" | " ") ")"
+toggle       = "{" "[" state "]" "/" state "}"
+input        = "<" ("_" | text)+ ">"
+accordion    = "[" ("^" | "v") " " label "]"
+slider       = "[" "="* "."* "]"
+rating       = "[" "*"* "."* "]"
+stepper      = "[" "- " number " +" "]"
+badge        = "{" (digit+ | "!") "}"
+tag          = "(" label ")"
+icon         = "#" digit
+image        = "!" "="+ "!"
+link         = "&" text
+separator    = "---"+
+spinner      = "[" ("/" | "\") "]"
 
 label        = (printable-char - special)+
 title        = " " label " "
 ```
 
-_This is illustrative, not formal. A real PEG/parser-combinator grammar would handle ambiguities (e.g., `[text]` — is it a button or an input?)._
+This is illustrative, not formal. See `07-markui-parser-architecture.md` for parser design.
 
 ---
 
-## 8. Open Questions
+## 8. Next Steps
 
-| #  | Question                                          | Options                                                           |
-| -- | ------------------------------------------------- | ----------------------------------------------------------------- |
-| 1  | How to distinguish `[Button]` from `[Input]`? | Underscores for input? Different brackets? [_input__]           |
-| 2  | Active tab styling?                               | Spaces `[ Tab ]`, Double is active `[[Tab*]]`, double-border? |
-| 3  | Radio unselected glyph?                           | explicit `○`?                                                  |
-| 4  | Multi-column: which proposal?                     | A (adjacent), B (dividers), C (hybrid), D (row markers)?          |
-| 5  | How do widgets get identity?                      | Defer                                                             |
-| 6  | Scrollable regions?                               | let's think about this  maybe ^ and line and then a down char?   |
-| 7  | Binding model?                                    | Defer                                                             |
-| 8  | Theming / color?                                  | Defer                                                             |
-| 9  | Responsive layout?                                | Let's think about it                                              |
-| 10 | Comments?                                         | yes. no idea yet maybe blocks of ''' like in markdown            |
-
----
-
-## 9. Next Steps
-│ ┌─── Server ──────────────┬─── Status ─────────────────┐ │
-│ │ Host: [192.168.1.1____] │ State:    Connected        │ │
-│ │ Port: [8080__________]  │ Ping:     42ms             │ │
-│ │                         │ Uptime:   3d 14h           │ │
-│ │ [Connect]  [Disconnect] │                            │ │
-│ └─────────────────────────┴────────────────────────────┘ │
-│                                                          │
-│ ^-options-------------------------------------------------│
-│                                                          │
-│ Protocol:   * TCP   * UDP   * WebSocket                  │
-│ Encryption: <on>                                         │
-│ Timeout:    [====····] 60s                               │
-│                                                          │
-│ > Advanced Settings                                      │
-│                                                          │
-│ ┌─── Log ────────────────────────────────────────────┐   │
-│ │ 12:01 Connected to 192.168.1.1:8080                │   │
-│ │ 12:02 Handshake complete                           │   │
-│ │ 12:03 Ping: 42ms                                   │   │
-│ └────────────────────────────────────────────────────┘   │
-│                                                          │
-│ [Save Config]  [Load Config]  [Reset]                    │
-1. **Resolve open questions** — especially multi-column layout and widget identity
-2. **Formal grammar** — PEG or parser-combinator spec
-3. **Reference parser** — TypeScript or C# implementation
-4. **VS Code extension** — syntax highlighting, live preview, interactive mode
-5. **First code-gen backend** — HTML/CSS as the simplest target
+1. **Reference parser** — TypeScript or C# implementation
+2. **VS Code extension** — syntax highlighting, live preview, interactive mode
+3. **Code-gen backend** — HTML/CSS as the simplest target

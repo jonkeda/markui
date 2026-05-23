@@ -1476,7 +1476,7 @@ var require_tree_builder = __commonJS({
     exports2.buildTree = buildTree;
     var content_1 = require_content();
     function buildTree(boxes, layoutMap, grid) {
-      const document = {
+      const document2 = {
         type: "Document",
         row: 0,
         col: 0,
@@ -1490,14 +1490,14 @@ var require_tree_builder = __commonJS({
         if (box.parent)
           continue;
         const node = buildBoxNode(box, bi, boxes, layoutMap, grid);
-        document.children.push(node);
+        document2.children.push(node);
       }
       const rootLayout = layoutMap.get(content_1.ROOT_KEY);
       if (rootLayout) {
-        document.children.push(...rootLayout.children);
+        document2.children.push(...rootLayout.children);
       }
-      document.children.sort((a, b) => a.row - b.row || a.col - b.col);
-      return document;
+      document2.children.sort((a, b) => a.row - b.row || a.col - b.col);
+      return document2;
     }
     function buildBoxNode(box, boxIndex, allBoxes, layoutMap, grid) {
       let nodeType = box.cornerChar === "*" ? "Card" : "Box";
@@ -2348,7 +2348,7 @@ var require_dist = __commonJS({
     };
     Object.defineProperty(exports2, "__esModule", { value: true });
     exports2.blueprintTheme = exports2.sketchTheme = exports2.cleanTheme = exports2.getTheme = exports2.renderToSvg = exports2.parse = void 0;
-    exports2.compile = compile2;
+    exports2.compile = compile3;
     __exportStar(require_types(), exports2);
     var parser_1 = require_parser();
     Object.defineProperty(exports2, "parse", { enumerable: true, get: function() {
@@ -2374,7 +2374,7 @@ var require_dist = __commonJS({
     var parser_2 = require_parser();
     var svg_renderer_2 = require_svg_renderer();
     var themes_2 = require_themes();
-    function compile2(source, options) {
+    function compile3(source, options) {
       const result = (0, parser_2.parse)(source, { mode: options?.mode });
       const theme = (0, themes_2.getTheme)(options?.theme ?? "clean");
       const svg = (0, svg_renderer_2.renderToSvg)(result.tree, theme);
@@ -2391,7 +2391,65 @@ __export(extension_exports, {
 });
 module.exports = __toCommonJS(extension_exports);
 var vscode = __toESM(require("vscode"));
+var import_markui_core2 = __toESM(require_dist());
+
+// src/markdown/plugin.ts
 var import_markui_core = __toESM(require_dist());
+
+// src/markdown/theme-detector.ts
+function detectTheme() {
+  if (typeof document === "undefined")
+    return "light";
+  const body = document.body;
+  if (body.classList.contains("vscode-dark") || body.classList.contains("vscode-high-contrast")) {
+    return "dark";
+  }
+  return "light";
+}
+function getThemeForMode(mode, lightTheme, darkTheme) {
+  return mode === "dark" ? darkTheme : lightTheme;
+}
+
+// src/markdown/plugin.ts
+function escapeHtml(text) {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function renderMarkuiBlock(source, theme, maxSize) {
+  if (source.length > maxSize) {
+    return `<div class="markui-error">MarkUI block too large (${source.length} characters, max ${maxSize}).</div>`;
+  }
+  try {
+    const { svg, errors } = (0, import_markui_core.compile)(source, { mode: "autofix", theme });
+    const criticalErrors = errors.filter((e) => e.severity === "error");
+    if (criticalErrors.length > 0) {
+      const messages = criticalErrors.map((e) => `Line ${e.row}:${e.col} - ${escapeHtml(e.message)}`).join("\n");
+      return `<div class="markui-error">MarkUI errors:
+${messages}</div>`;
+    }
+    return `<div class="markui-diagram" data-theme="${escapeHtml(theme)}">${svg}</div>`;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    return `<div class="markui-error">MarkUI render error: ${escapeHtml(message)}</div>`;
+  }
+}
+function markuiPlugin(md, options) {
+  const lightTheme = options?.lightTheme || "clean";
+  const darkTheme = options?.darkTheme || "blueprint";
+  const maxSize = options?.maxSize || 5e4;
+  const defaultFence = md.renderer.rules.fence;
+  md.renderer.rules.fence = (tokens, idx, opts, env, self) => {
+    const token = tokens[idx];
+    const info = token.info.trim();
+    if (info === "markui" || info.startsWith("markui:")) {
+      const mode = detectTheme();
+      const theme = getThemeForMode(mode, lightTheme, darkTheme);
+      return renderMarkuiBlock(token.content, theme, maxSize);
+    }
+    return defaultFence ? defaultFence(tokens, idx, opts, env, self) : `<pre><code>${escapeHtml(token.content)}</code></pre>`;
+  };
+}
+
+// src/extension.ts
 var diagnosticCollection;
 var previewPanel;
 var currentTheme;
@@ -2467,25 +2525,30 @@ function activate(context) {
       validateDocument(doc);
     }
   }
+  return {
+    extendMarkdownIt(md) {
+      return md.use(markuiPlugin);
+    }
+  };
 }
 function deactivate() {
   previewPanel?.dispose();
 }
-function validateDocument(document) {
-  const source = document.getText();
+function validateDocument(document2) {
+  const source = document2.getText();
   try {
-    const result = (0, import_markui_core.parse)(source, { mode: "strict" });
-    const diagnostics = result.errors.map((err) => errorToDiagnostic(err, document));
-    diagnosticCollection.set(document.uri, diagnostics);
+    const result = (0, import_markui_core2.parse)(source, { mode: "strict" });
+    const diagnostics = result.errors.map((err) => errorToDiagnostic(err, document2));
+    diagnosticCollection.set(document2.uri, diagnostics);
   } catch {
-    diagnosticCollection.set(document.uri, []);
+    diagnosticCollection.set(document2.uri, []);
   }
 }
-function errorToDiagnostic(err, document) {
+function errorToDiagnostic(err, document2) {
   const startLine = Math.max(0, err.row - 1);
   const startCol = Math.max(0, err.col - 1);
   const endLine = err.endRow != null ? Math.max(0, err.endRow - 1) : startLine;
-  const endCol = err.endCol != null ? Math.max(0, err.endCol - 1) : document.lineAt(Math.min(endLine, document.lineCount - 1)).text.length;
+  const endCol = err.endCol != null ? Math.max(0, err.endCol - 1) : document2.lineAt(Math.min(endLine, document2.lineCount - 1)).text.length;
   const range = new vscode.Range(startLine, startCol, endLine, endCol);
   let severity;
   switch (err.severity) {
@@ -2571,7 +2634,7 @@ function updatePreview() {
   let svg = "";
   let errors = [];
   try {
-    const result = (0, import_markui_core.compile)(source, { mode: "autofix", theme: currentTheme });
+    const result = (0, import_markui_core2.compile)(source, { mode: "autofix", theme: currentTheme });
     svg = result.svg;
     errors = result.errors;
   } catch (err) {
@@ -2583,14 +2646,14 @@ function updatePreview() {
   const warningErrors = errors.filter((e) => e.severity === "warning" || e.severity === "info");
   const criticalErrors = errors.filter((e) => e.severity === "error");
   const errorsHtml = criticalErrors.length > 0 ? `<div class="errors">${criticalErrors.map(
-    (e) => `<div class="error-item">Line ${e.row}:${e.col} [${escapeHtml(e.code)}] ${escapeHtml(e.message)}</div>`
+    (e) => `<div class="error-item">Line ${e.row}:${e.col} [${escapeHtml2(e.code)}] ${escapeHtml2(e.message)}</div>`
   ).join("")}</div>` : "";
   const warningsHtml = warningErrors.length > 0 ? `<div class="warnings">${warningErrors.map(
-    (e) => `<div class="warning-item">Line ${e.row}:${e.col} [${escapeHtml(e.code)}] ${escapeHtml(e.message)}</div>`
+    (e) => `<div class="warning-item">Line ${e.row}:${e.col} [${escapeHtml2(e.code)}] ${escapeHtml2(e.message)}</div>`
   ).join("")}</div>` : "";
   previewPanel.webview.html = getPreviewHtml(svg, zoomStyle, zoomLabel, errorsHtml, warningsHtml);
 }
-function escapeHtml(text) {
+function escapeHtml2(text) {
   return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 function getPreviewHtml(svg, zoomStyle, zoomLabel, errorsHtml, warningsHtml) {
@@ -2725,7 +2788,7 @@ async function exportToSvg() {
   }
   const source = editor.document.getText();
   try {
-    const result = (0, import_markui_core.compile)(source, { mode: "autofix", theme: currentTheme });
+    const result = (0, import_markui_core2.compile)(source, { mode: "autofix", theme: currentTheme });
     const criticalErrors = result.errors.filter((e) => e.severity === "error");
     if (criticalErrors.length > 0) {
       const proceed = await vscode.window.showWarningMessage(
@@ -2767,8 +2830,8 @@ async function changeTheme() {
   }
 }
 var MarkuiCompletionProvider = class {
-  provideCompletionItems(document, position) {
-    const lineText = document.lineAt(position).text;
+  provideCompletionItems(document2, position) {
+    const lineText = document2.lineAt(position).text;
     const charBefore = position.character > 0 ? lineText[position.character - 1] : "";
     const linePrefix = lineText.substring(0, position.character).trimStart();
     const items = [];
@@ -2832,10 +2895,10 @@ var MarkuiCompletionProvider = class {
   }
 };
 var MarkuiHoverProvider = class {
-  provideHover(document, position) {
-    const source = document.getText();
+  provideHover(document2, position) {
+    const source = document2.getText();
     try {
-      const result = (0, import_markui_core.parse)(source, { mode: "autofix" });
+      const result = (0, import_markui_core2.parse)(source, { mode: "autofix" });
       const node = findNodeAtPosition(result.tree, position.line + 1, position.character + 1);
       if (!node)
         return void 0;
@@ -2875,23 +2938,23 @@ function findNodeAtPosition(node, row, col) {
   return void 0;
 }
 var MarkuiOutlineProvider = class {
-  provideDocumentSymbols(document) {
-    const source = document.getText();
+  provideDocumentSymbols(document2) {
+    const source = document2.getText();
     try {
-      const result = (0, import_markui_core.parse)(source, { mode: "autofix" });
-      return this.buildSymbolsFromBoxes(result.boxes, document);
+      const result = (0, import_markui_core2.parse)(source, { mode: "autofix" });
+      return this.buildSymbolsFromBoxes(result.boxes, document2);
     } catch {
       return [];
     }
   }
-  buildSymbolsFromBoxes(boxes, document) {
+  buildSymbolsFromBoxes(boxes, document2) {
     return boxes.map((box) => {
       const startLine = Math.max(0, box.top - 1);
-      const endLine = Math.min(document.lineCount - 1, box.bottom - 1);
+      const endLine = Math.min(document2.lineCount - 1, box.bottom - 1);
       const startCol = Math.max(0, box.left - 1);
-      const endCol = document.lineAt(endLine).text.length;
+      const endCol = document2.lineAt(endLine).text.length;
       const range = new vscode.Range(startLine, startCol, endLine, endCol);
-      const selectionRange = new vscode.Range(startLine, startCol, startLine, document.lineAt(startLine).text.length);
+      const selectionRange = new vscode.Range(startLine, startCol, startLine, document2.lineAt(startLine).text.length);
       const name = box.title || box.typeName || "Container";
       const kind = this.getSymbolKind(box.typeName);
       const symbol = new vscode.DocumentSymbol(
@@ -2901,7 +2964,7 @@ var MarkuiOutlineProvider = class {
         range,
         selectionRange
       );
-      symbol.children = this.buildSymbolsFromBoxes(box.children, document);
+      symbol.children = this.buildSymbolsFromBoxes(box.children, document2);
       return symbol;
     });
   }

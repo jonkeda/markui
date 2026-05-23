@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { parse, compile, getTheme, renderToSvg } from '@jonkeda/markui-core';
 import type { WidgetNode, ParseError, Box } from '@jonkeda/markui-core';
+import { markuiPlugin } from './markdown/plugin';
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 let previewPanel: vscode.WebviewPanel | undefined;
@@ -89,6 +90,12 @@ export function activate(context: vscode.ExtensionContext) {
 			validateDocument(doc);
 		}
 	}
+
+	return {
+		extendMarkdownIt(md: any) {
+			return md.use(markuiPlugin);
+		}
+	};
 }
 
 export function deactivate() {

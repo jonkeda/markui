@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { compile } = require('../packages/markui-core/dist/index');
 
-const dir = path.join(__dirname, '..', 'examples');
+const dir = process.argv[2] ? path.resolve(process.argv[2]) : path.join(__dirname, '..', 'examples');
 const bt = '`'.repeat(3);
 const re = new RegExp(bt + 'markui(?::[\\w-]*)?\\r?\\n([\\s\\S]*?)' + bt, 'g');
 

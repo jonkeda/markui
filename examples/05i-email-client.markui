@@ -1,0 +1,25 @@
++--- Email Client ----------------------------------------------------------+
+|                                                                          |
+|  #1 Compose  #2 Inbox {12}  #3 Sent  #4 Drafts {3}  #5 Trash           |
+|                                                                          |
++--+--[[Inbox]]--[Starred]--[Important]--[Sent]--+--------------------------+
+|                                                 |                          |
+|  [ ] | #6 | Alice Smith       | Project up... | | From: Alice Smith       |
+|  [x] | #7 | Bob Johnson       | Meeting to... | | To: me                  |
+|  [ ] |    | Charlie Brown     | Quick ques... | | Date: May 23, 2026      |
+|  [ ] | #6 | Diana Prince      | Re: Budget... | |                         |
+|  [ ] |    | Edward Norton     | Invitation... | | ## Meeting Tomorrow     |
+|  [...]                                         # |                         |
+|                                                 | | Hi,                     |
+|                                                 | |                         |
+|  ---                                            | | Let's meet at 3pm in    |
+|                                                 | | the main conference     |
+|  [Archive]  [Delete]  [Move to v]               | | room to discuss the     |
+|                                                 | | Q3 roadmap.             |
+|                                                 | |                         |
+|                                                 | | Best,                   |
+|                                                 | | Bob                     |
+|                                                 | |                         |
+|                                                 | | [Reply]  [Forward]      |
+|                                                 | |                         |
++-------------------------------------------------+--------------------------+

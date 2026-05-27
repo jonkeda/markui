@@ -1,182 +1,195 @@
 # MarkUI Widget Design Principles
 
-**Date:** 2026-05-22
-**Status:** v3.1
-**Purpose:** Rules governing widget glyph design — how existing widgets work and how to create new ones.
+**Date:** 2026-05-27  
+**Status:** v4.0 draft  
+**Purpose:** Design rationale for MarkUI widget glyphs. This document explains how widgets should be designed and extended. The canonical widget catalog lives in `04-markui-widget-reference.md`.
 
 ---
 
-## 1. Design Principles
+## 1. Role of This Document
 
-1. **A widget is a glyph** — a recognizable ASCII pattern that a human reads as a control and a parser extracts as a node.
-2. **Widgets are leaf nodes** — they cannot contain other widgets or boxes.
-3. **One line, one widget** — a widget occupies part of a single line. Multi-line widgets (like expanded dropdowns or accordion content) use indentation and end markers to claim subsequent lines.
-4. **State is visible** — the current state of every widget is encoded in its glyph. `[x]` is checked. `( )` is unselected. `{on/[off]}` is off. No hidden state.
-5. **No attributes** — widgets have no key=value properties. Everything is expressed in the glyph shape and content.
-6. **No modifiers** — no disabled, required, error, read-only, or stretch markers. All inputs render identically regardless of state.
+Doc 03 owns MarkUI design principles, not the widget catalog.
+
+Use this document when deciding whether a new glyph belongs in the language, whether a pattern is readable enough to standardize, or where a design rationale should live.
+
+Use Doc 04 when looking up the exact syntax for an existing widget.
 
 ---
 
-## 2. Rules for Inventing New Widgets
+## 2. Core Principles
 
-### 2.1 The Glyph Must Be Self-Evident
+1. **A widget is a glyph.** A widget is a recognizable ASCII or Unicode pattern that a human can read and the parser can identify.
+2. **State is visible.** The current state is encoded directly in the glyph: `[x]`, `( )`, `{on/[off]}`, `[Section ^]`.
+3. **No hidden attributes.** MarkUI does not use `key=value` attributes inside wireframes.
+4. **No modifiers.** Do not add required, disabled, error, read-only, stretch, or visual-state modifiers to widgets. Show messages with annotations instead.
+5. **Composition beats invention.** Combine existing widgets before inventing a new glyph.
+6. **Readable first.** If a pattern is hard to read in monospace, it is not a good MarkUI pattern.
+7. **The source is the sketch.** The text file should still look like a UI before any renderer processes it.
 
-A reader encountering the widget for the first time should have a reasonable guess what it does. `[x]` obviously means "checked." `(*)` obviously means "selected." If the glyph requires explanation, redesign it.
+---
 
-### 2.2 Use Existing Bracket Conventions
+## 3. Glyph Design Rules
 
-| Bracket  | Meaning                                     | Examples                           |
-|----------|---------------------------------------------|------------------------------------|
-| `[ ]`    | Buttons, checkboxes, sliders, steppers, etc | `[Submit]` `[x]` `[=====.....]`   |
-| `[[ ]]`  | Active / emphasized                         | `[[Tab]]` `[[3]]`                  |
-| `< >`    | Text inputs, dropdowns                      | `<____>` `<v Select>`              |
-| `{ / }`  | Toggles                                     | `{[on]/off}` `{on/[off]}`         |
-| `{n}`    | Badges                                      | `{3}` `{!}`                        |
-| `( )`    | Radio buttons, tags/chips                   | `(*) ( )` / `(tag)` `(tag x)`     |
-| `#N`     | Icons (numbered)                            | `#1` `#2`                          |
-| `!`      | Image placeholder                           | `!==IMG==!`                        |
+### 3.1 The Glyph Must Be Self-Evident
 
-New widgets should reuse these brackets with their established semantics. Don't invent new bracket types without strong justification.
+A reader should be able to guess the control from its shape.
 
-### 2.3 State Is In the Glyph
+Good:
 
-Every possible state of a widget must be representable as a distinct glyph. The file shows the current state at all times.
+```text
+[ ] Subscribe
+[x] Accept terms
+(*) Daily
+( ) Weekly
+```
 
 Bad:
 
+```text
+[Checkbox]
+[Radio selected]
 ```
-[Checkbox]     <- is it checked or not? Can't tell.
+
+The bad examples require hidden semantics in the label. The good examples expose state in the glyph.
+
+### 3.2 Use Existing Bracket Families
+
+New widgets should reuse the existing bracket family that matches their role:
+
+| Family | Design role |
+| --- | --- |
+| `[ ]` | Actions, checks, compact controls, progress-like controls |
+| `[[ ]]` | Active or selected navigation items |
+| `< >` | Inputs and dropdown-like entry controls |
+| `{ / }` | Switches and compact status values |
+| `( )` | Radios, chips, tags, and annotation prefixes |
+| `#N` | Numbered icon references |
+| `!` | Image placeholders |
+
+Do not introduce new bracket families unless composition with existing ones fails.
+
+### 3.3 Keep State in the Smallest Stable Token
+
+The part that changes should be small and obvious:
+
+```text
+[ ] -> [x]
+{[on]/off} -> {on/[off]}
+[Section v] -> [Section ^]
+```
+
+Avoid designs where changing state requires rewriting large text regions.
+
+### 3.4 Avoid Ambiguity
+
+One visible pattern should mean one widget family. If two widgets might use the same pattern, add a disambiguation rule or choose another pattern.
+
+Examples of current disambiguation rules:
+
+- `<Country v>` is a dropdown because it ends with space plus `v`.
+- `<New v2>` is a text input value because it does not end with space plus a single chevron.
+- `(?) Help` is an annotation because `(?)` is a reserved annotation prefix.
+- `(React)` is a chip because it is not one of the reserved annotation prefixes.
+
+---
+
+## 4. Composition Guidance
+
+Before adding a new widget, check whether existing widgets can express the idea:
+
+| Desired control | Prefer composition |
+| --- | --- |
+| Search bar | `<Search________>` plus `[#1 Search]` when needed |
+| Tag input | `(React) (Vue x)` plus `<Add tag____>` |
+| Icon action | `[#1 Search]` |
+| Card list | `v`, `>`, or `w` list containers |
+| Modal behavior | typed container `+--@Modal--- Title ---+` |
+
+New glyphs should only be added when composition loses essential semantics or becomes unreadable.
+
+---
+
+## 5. Containers and Nesting Principles
+
+### 5.1 Boxes Are Layout
+
+Boxes are not decoration. A box means containment, grouping, or a named UI region.
+
+Use a full box when containment needs to be visually precise. Use an open-right box for quick left-anchored sketches. Use prefix nesting when deeply nested full boxes would become noisy.
+
+### 5.2 Limit Nesting Depth
+
+Three levels is the practical maximum for readable ASCII UI.
+
+```text
++--- Level 1 ------------------------+
+| +--- Level 2 --------------------+ |
+| | +--- Level 3 ----------------+ | |
+| | | content                    | | |
+| | +----------------------------+ | |
+| +--------------------------------+ |
++------------------------------------+
+```
+
+If a design needs deeper nesting, split the UI into components or simplify the layout.
+
+### 5.3 Prefer Directional List Containers
+
+Use list-container corners when the object is a repeatable item:
+
+- `v` for vertical lists
+- `>` for horizontal lists
+- `w` for wrapped lists
+
+Use `+` for structural boxes.
+
+---
+
+## 6. Text and Requirements
+
+Visible wireframes should contain UI text only.
+
+Do not put implementation notes, requirements, validation rules, or business logic in visible UI text. If the UI needs help, warning, info, error, or success copy, use annotations from Doc 04.
+
+Bad:
+
+```text
+Password must be validated server-side
 ```
 
 Good:
 
+```text
+Password:
+<****________>
+(?) Must be at least 8 characters.
 ```
-[ ] Checkbox   <- clearly unchecked
-[x] Checkbox   <- clearly checked
-[-] Checkbox   <- clearly indeterminate
-```
-
-### 2.4 One Pattern, One Widget
-
-No ambiguity. Content inside brackets determines the widget type via priority-ordered rules:
-
-**Inside `[ ]`:**
-
-| Content             | Widget          | Example          |
-|---------------------|-----------------|------------------|
-| single space        | Checkbox off    | `[ ]`            |
-| single `x`          | Checkbox on     | `[x]`            |
-| single `-`          | Checkbox mixed  | `[-]`            |
-| single `/` or `\`   | Spinner         | `[/]`            |
-| `...`               | List truncation | `[...]`          |
-| `- N +` pattern     | Stepper         | `[- 42 +]`       |
-| only `=` and `.`    | Slider/progress | `[====....]`     |
-| only `*` and `.` 3+ | Rating          | `[***..] 3/5`    |
-| `[[content]]`       | Active tab/page | `[[Tab]]`        |
-| everything else     | Button          | `[Submit]`       |
-
-**Inside `< >`:**
-
-| First char | Widget       | Example               |
-|------------|--------------|-----------------------|
-| `_`        | Text input   | `<____________>`      |
-| `v`        | Dropdown     | `<v Select item>`     |
-| `^`        | Dropdown     | `<^ Select item>`     |
-| `@`        | Custom input | `<@datepicker>`       |
-| other      | Text input   | `<hello_______>`      |
-
-**Inside `{ }`:**
-
-| Content       | Widget | Example        |
-|---------------|--------|----------------|
-| `[s]/s`       | Toggle | `{[on]/off}`   |
-| digits or `!` | Badge  | `{3}` `{!}`    |
-| `@...`        | Slot   | `{@slot:name}` |
-
-### 2.5 Composition Over Invention
-
-Before creating a new widget, check if existing widgets can be composed:
-
-- A "tag input" is a row of `(tags)` followed by a `<____>` input.
-- A "search bar" is a `<____>` input with a `[#1 Search]` icon button.
-- A "card" is just a box with `*` corners.
-- A "split button" is two adjacent brackets: `[Save][v]`.
-
-Only create a new widget glyph when composition fails to capture the semantics.
-
-### 2.6 Test the Readability
-
-After designing a widget glyph, place it in a full MarkUI layout. If it visually clashes, is hard to parse at a glance, or breaks alignment, iterate.
-
-### 2.7 Monospace Constraint
-
-Every widget must render correctly in a monospace font at any reasonable terminal width. No reliance on proportional spacing, ligatures, or special rendering.
 
 ---
 
-## 3. Nesting Rules
+## 7. Unicode Policy
 
-### 3.1 Box Forms
+ASCII remains the preferred authoring style because it is portable, keyboard-friendly, and predictable in monospace.
 
-Three equivalent forms for containers, freely mixable:
+Unicode is valid when it improves readability or when input is copied from a source using box-drawing characters or symbols. Examples include:
 
-| Form          | Syntax                    | Best for                       |
-|---------------|---------------------------|--------------------------------|
-| Full-form     | `+---+` with `|` borders  | Precise layout, side-by-side   |
-| Open-right    | Left `|` only, `+--+` end | Quick wireframing, accordion   |
-| Prefix-nested | `++`/`+++` headers        | Deep nesting without clutter   |
+- Box drawing: `┌─┐`, `│`, `└─┘`
+- Symbols: `✓`, `⚙`
+- Emoji when monospace readability is acceptable: `🔍`
+- Domain-specific glyphs when they remain readable in monospace
 
-### 3.2 Nesting Depth
-
-Boxes nest up to **3 levels** deep. Beyond that, readability degrades too much in monospace.
-
-```
-+--- Level 1 -------------------------+
-| +--- Level 2 ---------------------+ |
-| | +--- Level 3 (max) ----------+  | |
-| | | content                    |  | |
-| | +----------------------------+  | |
-| +---------------------------------+ |
-+-------------------------------------+
-```
-
-### 3.3 What Can Nest
-
-- Boxes inside boxes: yes
-- Widgets inside boxes: yes
-- Widgets inside widgets: no (widgets are leaf nodes)
-- Boxes inside widgets: no
+When semantic reuse matters, numbered icons such as `#1` are still preferred because their meaning can be defined outside the wireframe.
 
 ---
 
-## 4. Custom Components
+## 8. Where Details Belong
 
-When composition of existing widgets is insufficient, use custom components:
+| Material | Home |
+| --- | --- |
+| Design rationale | Doc 03 |
+| Exact widget syntax | Doc 04 root and chapter docs |
+| Full app examples | Doc 05 |
+| Parser architecture | Doc 07 |
+| VS Code extension behavior | Doc 08 |
 
-| Pattern           | Purpose                    | Example                         |
-|-------------------|----------------------------|---------------------------------|
-| `@name`           | Component reference        | `@user-card`                    |
-| `<@name>`         | Custom input widget        | `<@datepicker>`                 |
-| `+--@Type--+`     | Typed container            | `+--@Modal--- Title ---+`       |
-| `*--@Type--*`     | Typed card                 | `*--@ProductCard--*`            |
-| `{@slot}`         | Default slot               | Content insertion point         |
-| `{@slot:name}`    | Named slot                 | `{@slot:header}`                |
-
-Custom components are defined in separate `.markui` files or named ` ```markui:name ` blocks in `.md` files.
-
----
-
-## 5. Annotations
-
-Annotations bind to the nearest widget above them. A blank line breaks the binding.
-
-| Prefix | Meaning  |
-|--------|----------|
-| `(?)`  | Help     |
-| `($)`  | Tooltip  |
-| `(!)`  | Warning  |
-| `(i)`  | Info     |
-| `(x)`  | Error    |
-| `(v)`  | Success  |
-
-Annotations document constraints and messages **outside** the wireframe's visual structure. They are not modifiers — they don't change widget rendering.
+If a paragraph explains why MarkUI works this way, keep it here. If it explains how to write a widget, put it in Doc 04.

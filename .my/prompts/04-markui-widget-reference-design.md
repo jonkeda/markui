@@ -1,15 +1,21 @@
 # Design Prompt: MarkUI Doc 04 Widget Reference
 
 **Target doc:** `.my/Language/04-markui-widget-reference.md`  
+**Chapter docs:** `.my/Language/04a-*` through `.my/Language/04i-*` as needed  
 **Companion doc:** `.my/Language/05-markui-full-examples.md`  
 **Status:** design only, not the final content  
-**Intent:** replace the current `06-markui-widget-reference.md` and `09-markui-component-library.md` with one canonical widget reference plus one separate full-examples document.
+**Intent:** replace the current `06-markui-widget-reference.md` and `09-markui-component-library.md` with a clean three-doc set: rewritten Doc 03 for design principles, Doc 04 as the canonical widget reference, and Doc 05 for full examples.
 
 ---
 
 ## Goal
 
-Create a new Doc 04 that becomes the single authoritative MarkUI widget reference.
+Create a clean three-doc MarkUI language reference set:
+
+- Rewrite Doc 03 as the home for MarkUI widget design principles and language-design rationale.
+- Create Doc 04 as the canonical entry point for the MarkUI widget reference.
+- Split the detailed widget reference into chapter docs when that keeps the reference easier to write, review, and maintain.
+- Create Doc 05 as the home for full-screen and full-application MarkUI examples.
 
 Doc 04 must merge:
 
@@ -17,7 +23,8 @@ Doc 04 must merge:
 - `09-markui-component-library.md`: category order, component library feel, and rendered-example organization.
 
 Doc 04 must not contain large complete application examples. Those move to Doc 05.
-Doc 04 must not absorb general design-principle prose that belongs in Doc 03.
+Doc 04 must not absorb general design-principle prose. That material must stay in, or be moved into, the rewritten Doc 03.
+Doc 04 may be a table of contents plus shared reference rules, with detailed widget chapters in `04a`, `04b`, and so on.
 
 ---
 
@@ -42,18 +49,19 @@ Important clarification:
 ## Design Principles
 
 1. Doc 04 is the widget reference, not a tutorial, design-principles doc, or showcase gallery.
-2. Every widget/component must have a description.
-3. Every widget/component must show syntax and practical examples.
-4. Use the category order from Doc 09.
-5. Use only widget-reference text and rules from Doc 06, updated to current syntax. Leave general principles in Doc 03.
-6. Every example must be written twice:
+2. Doc 04 can be split into multiple chapter docs, but `04-markui-widget-reference.md` remains the canonical entry point.
+3. Every widget/component must have a description.
+4. Every widget/component must show syntax and practical examples.
+5. Use the category order from Doc 09.
+6. Use only widget-reference text and rules from Doc 06, updated to current syntax. Leave general principles in Doc 03.
+7. Every example must be written twice:
    - once as a normal Markdown code block for source comparison
    - once as a `markui` code block for rendered preview
-7. Full-screen examples belong in Doc 05, not Doc 04.
-8. Examples must be small, focused, and parser-valid.
-9. Avoid stale syntax from older docs, especially accordion guide bodies and collapsed dropdowns with visible options.
-10. Accordion and expander must be separate reference entries. An accordion is a grouped pattern made from multiple expanders.
-11. Include Unicode examples where they clarify supported authoring, especially icons and box-drawing alternatives.
+8. Full-screen examples belong in Doc 05, not Doc 04.
+9. Examples must be small, focused, and parser-valid.
+10. Avoid stale syntax from older docs, especially accordion guide bodies and collapsed dropdowns with visible options.
+11. Accordion and expander must be separate reference entries. An accordion is a grouped pattern made from multiple expanders.
+12. Include Unicode examples where they clarify supported authoring, especially icons and box-drawing alternatives.
 
 ---
 
@@ -114,9 +122,53 @@ The final doc can omit empty headings, but every component must still cover desc
 
 ---
 
+## Target Doc 03 Rewrite Design
+
+Suggested target path:
+
+- `.my/Language/03-markui-widget-design-principles.md`
+
+Doc 03 should be rewritten before or alongside Doc 04 so Doc 04 can stay focused.
+
+Doc 03 owns:
+
+- MarkUI design principles.
+- Glyph design philosophy.
+- Rules for inventing new widgets.
+- State-is-visible rationale.
+- No modifiers rationale.
+- Composition-over-invention guidance.
+- Nesting readability guidance.
+- General language-design decisions that are not individual widget reference entries.
+
+Doc 03 should not duplicate every widget example from Doc 04. It can include short principle examples only when they explain a design rule.
+
+---
+
 ## Target Doc 04 Outline
 
 Use the categorization from Doc 09.
+
+Preferred structure:
+
+- Keep `.my/Language/04-markui-widget-reference.md` as the canonical index and entry point.
+- Put shared rules, parsing summaries, chapter links, and coverage status in the root Doc 04.
+- Put detailed widget/component sections into chapter docs.
+- If a single-file reference is ever needed, generate or manually assemble it from the chapter docs after the chapter content is approved.
+
+Suggested chapter files:
+
+- `04a-buttons-actions.md`
+- `04b-checkboxes-radios.md`
+- `04c-inputs-forms.md`
+- `04d-dropdowns-custom-inputs.md`
+- `04e-display-text-icons.md`
+- `04f-containers-layout.md`
+- `04g-navigation.md`
+- `04h-tables-data.md`
+- `04i-components-alerts-images.md`
+
+The exact chapter list can change, but chapter boundaries should follow the Doc 09 category order and avoid giant all-in-one files.
 
 ### 0. Document Header
 
@@ -127,6 +179,7 @@ Include:
 - Purpose: canonical widget reference for MarkUI
 - Replacement note: supersedes Doc 06 and Doc 09 after approval
 - Companion note: full examples live in Doc 05
+- Chapter index linking to all `04a-*` through `04i-*` docs
 
 ### 1. Core Rules
 
@@ -594,12 +647,15 @@ Doc 05 example rules:
 
 ## Migration Plan
 
-1. Draft Doc 04 from this design.
-2. Draft Doc 05 with full examples moved out of Doc 09.
-3. Validate every `markui` block in Doc 04 and Doc 05.
-4. Render suspicious examples and visually inspect them.
-5. Confirm Doc 04 covers every widget from Doc 06 and every category from Doc 09.
-6. Mark Doc 06 and Doc 09 as superseded, then remove them only after Doc 04 and Doc 05 are approved.
+1. Rewrite Doc 03 so it cleanly owns design principles and language-design rationale.
+2. Draft root Doc 04 as the canonical widget-reference index and shared rules page.
+3. Draft the `04a-*` chapter docs for detailed widget/component reference content.
+4. Draft Doc 05 with full examples moved out of Doc 09.
+5. Validate every `markui` block in Doc 04 chapter docs and Doc 05.
+6. Render suspicious examples and visually inspect them.
+7. Confirm the Doc 04 chapter set covers every widget-reference entry from Doc 06 and every category from Doc 09.
+8. Confirm Doc 03 contains the principle material intentionally left out of Doc 04.
+9. Mark Doc 06 and Doc 09 as superseded, then remove them only after Doc 03, root Doc 04, all Doc 04 chapters, and Doc 05 are approved.
 
 ---
 
@@ -609,6 +665,8 @@ Before approving final Doc 04, verify:
 
 - [ ] Every Doc 09 category appears in Doc 04.
 - [ ] Every widget-reference entry from Doc 06 appears in Doc 04.
+- [ ] Root Doc 04 links to all chapter docs.
+- [ ] Chapter docs follow the Doc 09 category order.
 - [ ] General design-principle prose that belongs in Doc 03 is not copied into Doc 04.
 - [ ] Every component has a description.
 - [ ] Every component has at least one paired `text` and `markui` example.
@@ -620,16 +678,16 @@ Before approving final Doc 04, verify:
 - [ ] Accordion is described as a grouped pattern made from multiple expanders.
 - [ ] Expanders and accordions use current clean body syntax.
 - [ ] Full app examples are moved to Doc 05.
-- [ ] No example uses stale `*` card syntax unless explicitly documenting legacy behavior.
+- [ ] No example uses stale `*` card syntax.
 - [ ] No visible wireframe text contains requirements, business rules, or implementation notes.
 - [ ] ASCII examples remain primary.
 - [ ] Unicode examples are included for supported authoring, especially icons and box-drawing alternatives.
 
 ---
 
-## Open Questions
+## Decisions
 
-1. Should the normal Markdown comparison block use `text` fences or blank language fences?
-2. Should Doc 04 include a small parser priority appendix, or keep all priority tables near the relevant widget categories?
-3. Should legacy syntax such as `*--- Card ---*` appear in a migration appendix, or disappear entirely from the canonical reference?
-4. Which Unicode examples should be canonical: simple symbols like `✓` and `⚙`, emoji like `🔍`, unicode box drawing, or all of these?
+1. Normal Markdown comparison blocks use `text` fences.
+2. Do not add a separate parser-priority appendix. Keep parsing notes in the root summary or next to the relevant widget categories.
+3. Legacy `*--- Card ---*` syntax should disappear from the canonical reference.
+4. Unicode coverage should include all useful forms: simple symbols, emoji, and Unicode box drawing.

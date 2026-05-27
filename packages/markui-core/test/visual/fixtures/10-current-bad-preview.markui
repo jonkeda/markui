@@ -1,0 +1,19 @@
++--- Preview Regression Candidate -------------------------------
+|
+|  This fixture intentionally mixes high-risk preview features.
+|
+|  +-----------+-----------------------------------------------+
+|  | Nav       | Content                                       |
+|  | [Inbox]   | [[Open]] [Closed] [Archived]                  |
+|  | [Today]   |                                               |
+|  | [Team]    | v--- Message --------------------------------v|
+|  |           | | #1 Ada                                     ||
+|  |           | | Please check the renderer output.          ||
+|  |           | | [Reply] [Archive]                          ||
+|  |           | v--------------------------------------------v|
+|  +-----------+-----------------------------------------------+
+|
+|  Notes:
+|  (?) Watch for text clipping, nested box drift, and list styling.
+|
++----

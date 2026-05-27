@@ -14,6 +14,7 @@ export function tokenizeLines(
     const tokenizedLines: LineToken[][] = [];
     for (const line of entry.lines) {
       const tokens = tokenizeLine(line.text, line.row, line.colOffset);
+      stampRow(tokens, line.row);
       tokenizedLines.push(tokens);
     }
 
@@ -22,7 +23,11 @@ export function tokenizeLines(
       te.columns = entry.columns.map(col => ({
         left: col.left,
         right: col.right,
-        tokens: col.lines.map(l => tokenizeLine(l.text, l.row, l.colOffset)),
+        tokens: col.lines.map(l => {
+          const toks = tokenizeLine(l.text, l.row, l.colOffset);
+          stampRow(toks, l.row);
+          return toks;
+        }),
       }));
     }
 
@@ -30,6 +35,14 @@ export function tokenizeLines(
   }
 
   return { tokenMap, errors };
+}
+
+/** Recursively set `row` on all tokens and their children. */
+function stampRow(tokens: LineToken[], row: number): void {
+  for (const t of tokens) {
+    t.row = row;
+    if (t.children) stampRow(t.children, row);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -77,12 +90,15 @@ function tokenizeLine(text: string, row: number, colOffset: number): LineToken[]
     return parseTableRow(trimmed, row, colOffset + text.indexOf(trimmed));
   }
 
+  const pagination = parsePagination(trimmed, row, colOffset + text.indexOf(trimmed));
+  if (pagination) return [pagination];
+
   // Heading at line start
   const headingMatch = text.match(/^(\s*)(#{1,6})\s+(.*)$/);
   if (headingMatch) {
     const indent = headingMatch[1].length;
     const level = headingMatch[2].length;
-    const hText = headingMatch[3];
+    const hText = headingMatch[3].trimEnd();
     return [{
       type: 'Heading', text: hText,
       start: indent + colOffset, end: indent + headingMatch[2].length + 1 + hText.length + colOffset,
@@ -106,7 +122,7 @@ function tokenizeLine(text: string, row: number, colOffset: number): LineToken[]
   if (annoMatch) {
     const indent = annoMatch[1].length;
     const aType = annoMatch[2];
-    const aText = annoMatch[3];
+    const aText = annoMatch[3].trimEnd();
     return [{
       type: 'Annotation', text: aText,
       start: indent + colOffset, end: text.length + colOffset,
@@ -234,11 +250,6 @@ function tryBracket(text: string, i: number, row: number, co: number): LineToken
     return { type: 'Spinner', text: content, start: i + co, end: closeIdx + 1 + co, state: 'indeterminate' };
   }
 
-  // 5. List truncation  [...]
-  if (content === '...') {
-    return { type: 'ListTruncation', text: '...', start: i + co, end: closeIdx + 1 + co };
-  }
-
   // 6. Stepper  [- N +]
   const stepperMatch = content.match(/^-\s+(\d+)\s+\+$/);
   if (stepperMatch) {
@@ -250,8 +261,8 @@ function tryBracket(text: string, i: number, row: number, co: number): LineToken
     };
   }
 
-  // 7. Slider / ProgressBar  [===..]  (only = and . chars)
-  if (content.length >= 2 && /^[=.]+$/.test(content)) {
+  // 7. Slider / ProgressBar  [===..]  (only = and . chars, must have at least one =)
+  if (content.length >= 2 && /^[=.]+$/.test(content) && content.includes('=')) {
     const filled = (content.match(/=/g) || []).length;
     const total = content.length;
     const pct = Math.round((filled / total) * 100);
@@ -262,8 +273,8 @@ function tryBracket(text: string, i: number, row: number, co: number): LineToken
     };
   }
 
-  // 8. Rating  [***.]  (only * and . chars, 3+ chars)
-  if (content.length >= 3 && /^[*.]+$/.test(content)) {
+  // 8. Rating  [***.]  (only * and . chars, 3+ chars, must have at least one *)
+  if (content.length >= 3 && /^[*.]+$/.test(content) && content.includes('*')) {
     const filled = (content.match(/\*/g) || []).length;
     const total = content.length;
     return {
@@ -554,6 +565,45 @@ function tryTreeNode(text: string, i: number, row: number, co: number): LineToke
     start: i + co, end: text.length + co,
     level: Math.floor(indent / 2),
     state: marker === '-' ? 'collapsed' : 'expanded',
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Pagination  [<] 1 2 [[3]] ... [>]
+// ---------------------------------------------------------------------------
+
+function parsePagination(trimmed: string, row: number, startCol: number): LineToken | null {
+  if (!trimmed.includes('[<]') || !trimmed.includes('[>]')) return null;
+
+  const tokenRe = /\[<\]|\[>\]|\[\[\d+\]\]|\d+|\.{3}/g;
+  const children: LineToken[] = [];
+  let match: RegExpExecArray | null;
+
+  while ((match = tokenRe.exec(trimmed)) !== null) {
+    const raw = match[0];
+    const start = startCol + match.index;
+    const end = start + raw.length;
+
+    if (raw === '[<]') {
+      children.push({ type: 'PrevButton', text: '<', start, end, row });
+    } else if (raw === '[>]') {
+      children.push({ type: 'NextButton', text: '>', start, end, row });
+    } else if (raw.startsWith('[[')) {
+      children.push({ type: 'ActiveTab', text: raw.slice(2, -2), start, end, row, state: 'selected' });
+    } else {
+      children.push({ type: 'Button', text: raw, start, end, row });
+    }
+  }
+
+  if (children.length < 3) return null;
+
+  return {
+    type: 'Pagination',
+    text: trimmed,
+    start: children[0].start,
+    end: children[children.length - 1].end,
+    row,
+    children,
   };
 }
 

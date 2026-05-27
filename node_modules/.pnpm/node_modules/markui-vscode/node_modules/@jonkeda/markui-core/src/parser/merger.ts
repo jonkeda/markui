@@ -93,7 +93,7 @@ function tryMergeTable(lines: LineToken[][], startIdx: number, out: WidgetNode[]
     const cellChildren: WidgetNode[] = (rowTok.children || []).map(c => ({
       type: 'TableCell' as WidgetType,
       text: c.text,
-      row: rowTok.start,
+      row: c.row ?? 0,
       col: c.start,
       width: c.end - c.start,
       children: [],
@@ -102,7 +102,7 @@ function tryMergeTable(lines: LineToken[][], startIdx: number, out: WidgetNode[]
     tableChildren.push({
       type: rowType,
       text: rowTok.text,
-      row: rowTok.start,
+      row: rowTok.row ?? 0,
       col: rowTok.start,
       width: rowTok.end - rowTok.start,
       children: cellChildren,
@@ -111,7 +111,7 @@ function tryMergeTable(lines: LineToken[][], startIdx: number, out: WidgetNode[]
 
   out.push({
     type: 'Table',
-    row: rows[0].start,
+    row: rows[0].row ?? 0,
     col: rows[0].start,
     width: rows[0].end - rows[0].start,
     height: end - startIdx,
@@ -148,7 +148,7 @@ function tryMergeTextarea(lines: LineToken[][], startIdx: number, out: WidgetNod
     type: 'Textarea',
     text: combinedText,
     value: combinedText,
-    row: allLines[0].start,
+    row: allLines[0].row ?? 0,
     col: allLines[0].start,
     width: firstWidth,
     height: end - startIdx,
@@ -182,7 +182,7 @@ function tryMergeExpandedDropdown(lines: LineToken[][], startIdx: number, out: W
         type: 'DropdownOption',
         text: label,
         state: firstTok.state,
-        row: firstTok.start,
+        row: firstTok.row ?? 0,
         col: firstTok.start,
         width: firstTok.end - firstTok.start,
         children: [],
@@ -197,7 +197,7 @@ function tryMergeExpandedDropdown(lines: LineToken[][], startIdx: number, out: W
       options.push({
         type: 'DropdownOption',
         text: txt,
-        row: firstTok.start,
+        row: firstTok.row ?? 0,
         col: firstTok.start,
         width: firstTok.end - firstTok.start,
         children: [],
@@ -215,7 +215,7 @@ function tryMergeExpandedDropdown(lines: LineToken[][], startIdx: number, out: W
     type: 'Dropdown',
     text: first[0].text,
     state: 'expanded',
-    row: first[0].start,
+    row: first[0].row ?? 0,
     col: first[0].start,
     width: first[0].end - first[0].start,
     children: options,
@@ -253,7 +253,11 @@ function tryMergeAccordion(lines: LineToken[][], startIdx: number, out: WidgetNo
         const contentLine = lines[end];
         if (contentLine.length === 0) break;
         if (contentLine.length === 1 && contentLine[0].type === 'Accordion') break;
-        for (const tok of contentLine) {
+        if (isAccordionCloseLine(contentLine)) {
+          end++;
+          break;
+        }
+        for (const tok of stripAccordionGuide(contentLine)) {
           sectionChildren.push(tokenToNode(tok));
         }
         end++;
@@ -266,7 +270,7 @@ function tryMergeAccordion(lines: LineToken[][], startIdx: number, out: WidgetNo
       type: 'Expander',
       text: header.text,
       state: header.state,
-      row: header.start,
+      row: header.row ?? 0,
       col: header.start,
       width: header.end - header.start,
       children: sectionChildren,
@@ -291,6 +295,32 @@ function tryMergeAccordion(lines: LineToken[][], startIdx: number, out: WidgetNo
   });
 
   return end - startIdx;
+}
+
+function isAccordionCloseLine(line: LineToken[]): boolean {
+  const text = line.map(tok => tok.text).join('');
+  return /^\+-+\+$/.test(text);
+}
+
+function stripAccordionGuide(line: LineToken[]): LineToken[] {
+  if (line.length === 0) return line;
+  const [first, ...rest] = line;
+  if (first.type !== 'Label' || !first.text.startsWith('|')) return line;
+
+  const match = first.text.match(/^\|\s*/);
+  const prefixLength = match?.[0].length ?? 1;
+  const text = first.text.slice(prefixLength);
+  if (text.length === 0) return rest;
+
+  return [
+    {
+      ...first,
+      text,
+      start: first.start + prefixLength,
+      end: first.start + prefixLength + text.length,
+    },
+    ...rest,
+  ];
 }
 
 // ---------------------------------------------------------------------------
@@ -321,7 +351,7 @@ function tryMergeImage(lines: LineToken[][], startIdx: number, out: WidgetNode[]
   out.push({
     type: 'Image',
     text: imgText,
-    row: allTokens[0].start,
+    row: allTokens[0].row ?? 0,
     col: allTokens[0].start,
     width: Math.max(...allTokens.map(t => t.end - t.start)),
     height: end - startIdx,
@@ -374,7 +404,7 @@ function tryMergeFormField(lines: LineToken[][], startIdx: number, out: WidgetNo
   out.push({
     type: 'FormField',
     text: labelLine[0].text,
-    row: labelLine[0].start,
+    row: labelLine[0].row ?? 0,
     col: labelLine[0].start,
     width: Math.max(
       labelLine[0].end - labelLine[0].start,
@@ -394,7 +424,7 @@ function tokenToNode(tok: LineToken): WidgetNode {
   const node: WidgetNode = {
     type: tok.type,
     text: tok.text,
-    row: tok.start,
+    row: tok.row ?? 0,
     col: tok.start,
     width: tok.end - tok.start,
     children: [],

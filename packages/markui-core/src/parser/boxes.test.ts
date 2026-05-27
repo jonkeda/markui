@@ -30,15 +30,25 @@ describe('detectBoxes', () => {
     expect(boxes[0].title).toBe('Title');
   });
 
-  it('should detect a card (star corners)', () => {
-    const grid = loadGrid([
-      '*--- Product ---*',
-      '| Widget A      |',
-      '*---------------*',
-    ].join('\n'));
+  it('should detect a vertical list (v corners)', () => {
+    const grid = loadGrid('v--- Item ---v\n| content    |\nv------------v');
     const { boxes } = detectBoxes(grid, 'strict');
     expect(boxes.length).toBe(1);
-    expect(boxes[0].cornerChar).toBe('*');
+    expect(boxes[0].cornerChar).toBe('v');
+  });
+
+  it('should detect a horizontal list (> corners)', () => {
+    const grid = loadGrid('>--- Item --->\n| content    |\n>------------>');
+    const { boxes } = detectBoxes(grid, 'strict');
+    expect(boxes.length).toBe(1);
+    expect(boxes[0].cornerChar).toBe('>');
+  });
+
+  it('should detect a wrapped list (w corners)', () => {
+    const grid = loadGrid('w--- Item ---w\n| content    |\nw------------w');
+    const { boxes } = detectBoxes(grid, 'strict');
+    expect(boxes.length).toBe(1);
+    expect(boxes[0].cornerChar).toBe('w');
   });
 
   it('should detect nested boxes', () => {
@@ -60,12 +70,12 @@ describe('detectBoxes', () => {
 
   it('should detect open-right box', () => {
     const grid = loadGrid([
-      '+--- Login ---+',
+      '+--- Login ----',
       '|',
       '|  Username:',
       '|  <______>',
       '|',
-      '+--+',
+      '+----',
     ].join('\n'));
     const { boxes } = detectBoxes(grid, 'strict');
     expect(boxes.length).toBe(1);
@@ -115,20 +125,31 @@ describe('detectBoxes', () => {
     expect(boxes.length).toBe(0);
   });
 
+  it('should detect an open box without trailing +', () => {
+    const grid = loadGrid('+--- Title ----\n|\n|  content\n|\n+----');
+    const { boxes } = detectBoxes(grid, 'strict');
+    expect(boxes.length).toBe(1);
+    expect(boxes[0].hasRightBorder).toBe(false);
+    expect(boxes[0].title).toBe('Title');
+  });
+
+  it('should not treat marker letters inside open-right titles as corners', () => {
+    const grid = loadGrid('+--- Preview Flow ----\n|\n|  content\n|\n+----');
+    const { boxes } = detectBoxes(grid, 'strict');
+    expect(boxes.length).toBe(1);
+    expect(boxes[0].hasRightBorder).toBe(false);
+    expect(boxes[0].title).toBe('Preview Flow');
+  });
+
   it('should detect typed container', () => {
     const grid = loadGrid([
       '+--@Modal--- Confirm ---+',
       '| Are you sure?         |',
-      '+------------------------+',
+      '+-----------------------+',
     ].join('\n'));
     const { boxes } = detectBoxes(grid, 'strict');
     expect(boxes.length).toBe(1);
-    // typeName should be extracted
-    if (boxes[0].typeName) {
-      expect(boxes[0].typeName).toBe('Modal');
-    }
-    if (boxes[0].title) {
-      expect(boxes[0].title).toContain('Confirm');
-    }
+    expect(boxes[0].typeName).toBe('Modal');
+    expect(boxes[0].title).toBe('Confirm');
   });
 });

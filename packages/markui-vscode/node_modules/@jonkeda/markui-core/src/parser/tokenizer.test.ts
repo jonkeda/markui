@@ -55,10 +55,11 @@ describe('tokenizer - brackets', () => {
     expect(sp).toBeDefined();
   });
 
-  it('should parse list truncation [...]', () => {
+  it('should parse [...] as a button', () => {
     const { tree } = parse('[...]', { mode: 'strict' });
-    const lt = findByType(tree, 'ListTruncation');
-    expect(lt).toBeDefined();
+    const btn = findByType(tree, 'Button');
+    expect(btn).toBeDefined();
+    expect(btn!.text).toBe('...');
   });
 
   it('should parse stepper [- 42 +]', () => {

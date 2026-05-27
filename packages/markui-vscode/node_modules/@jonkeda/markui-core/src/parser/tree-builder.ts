@@ -35,6 +35,14 @@ export function buildTree(
   // Sort children by row, then col
   document.children.sort((a, b) => a.row - b.row || a.col - b.col);
 
+  // Update document width to fit all children (open-right boxes may expand beyond grid)
+  for (const child of document.children) {
+    const childRight = child.col + (child.width ?? 0);
+    if (childRight > document.width) {
+      document.width = childRight;
+    }
+  }
+
   return document;
 }
 
@@ -46,10 +54,16 @@ function buildBoxNode(
   grid: Grid
 ): WidgetNode {
   // Determine widget type
-  let nodeType: WidgetType = box.cornerChar === '*' ? 'Card' : 'Box';
+  let nodeType: WidgetType;
+  switch (box.cornerChar) {
+    case 'v': nodeType = 'VerticalList'; break;
+    case '>': nodeType = 'HorizontalList'; break;
+    case 'w': nodeType = 'WrappedList'; break;
+    default:  nodeType = 'Box'; break;
+  }
 
   // Check for context menu (floating box, indented from left edge)
-  if (box.left > 2 && !box.parent) {
+  if (nodeType === 'Box' && box.left > 2 && !box.parent) {
     nodeType = 'ContextMenu';
   }
 
@@ -72,6 +86,9 @@ function buildBoxNode(
     height: box.bottom - box.top + 1,
     children: [],
     level: box.nestLevel > 0 ? box.nestLevel : undefined,
+    scrollRight: box.scrollRight || undefined,
+    scrollBottom: box.scrollBottom || undefined,
+    resizeDividers: box.resizeDividers.length > 0 ? box.resizeDividers : undefined,
   };
 
   // Check for tab bar on top border
@@ -98,6 +115,23 @@ function buildBoxNode(
 
   // Sort children by row, then col
   node.children.sort((a, b) => a.row - b.row || a.col - b.col);
+
+  // For open-right boxes, expand width to fit all content
+  if (!box.hasRightBorder && node.children.length > 0) {
+    let maxRight = node.col + node.width;
+    for (const child of node.children) {
+      const childRight = child.col + (child.width ?? 0);
+      if (childRight > maxRight) maxRight = childRight;
+    }
+    node.width = maxRight - node.col + 1; // +1 for padding
+  }
+
+  // Make nested prefix sub-sections span parent's full width
+  for (const child of node.children) {
+    if (child.level && child.level > 0) {
+      child.width = node.width;
+    }
+  }
 
   return node;
 }

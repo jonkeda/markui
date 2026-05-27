@@ -4,8 +4,9 @@
   "scopeName": "source.markui",
   "patterns": [
     { "include": "#box-border-titled" },
-    { "include": "#card-border-titled" },
+    { "include": "#list-border-titled" },
     { "include": "#box-border" },
+    { "include": "#list-border" },
     { "include": "#vertical-border" },
     { "include": "#heading" },
     { "include": "#annotation" },
@@ -28,15 +29,15 @@
   ],
   "repository": {
     "box-border-titled": {
-      "match": "(\\+---\\s*)(.+?)(\\s*---+\\+)",
+      "match": "(\\+---\\s*)(.+?)(\\s*---+\\+?)",
       "captures": {
         "1": { "name": "markup.heading.markui" },
         "2": { "name": "entity.name.section.markui" },
         "3": { "name": "markup.heading.markui" }
       }
     },
-    "card-border-titled": {
-      "match": "(\\*---\\s*)(.+?)(\\s*---+\\*)",
+    "list-border-titled": {
+      "match": "([v>w]---\\s*)(.+?)(\\s*---+[v>w])",
       "captures": {
         "1": { "name": "markup.heading.markui" },
         "2": { "name": "entity.name.section.markui" },
@@ -44,7 +45,11 @@
       }
     },
     "box-border": {
-      "match": "\\+[-]+\\+",
+      "match": "\\+[-]+\\+?",
+      "name": "markup.heading.markui"
+    },
+    "list-border": {
+      "match": "[v>w][-]+[v>w]",
       "name": "markup.heading.markui"
     },
     "vertical-border": {

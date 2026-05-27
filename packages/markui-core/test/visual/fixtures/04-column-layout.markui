@@ -1,0 +1,10 @@
++--------------+-------------------------------+
+| Sidebar      | Main Content                  |
+| [Overview]   | # Dashboard                   |
+| [Reports]    | Revenue [=======...] 70%      |
+| [Settings]   |                               |
+|              | | Name  | Status  | Owner   | |
+|              | |-------|---------|---------| |
+|              | | API   | (Live)  | Team A  | |
+|              | | Docs  | (Draft) | Team B  | |
++--------------+-------------------------------+

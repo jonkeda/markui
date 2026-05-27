@@ -7,7 +7,7 @@ MarkUI is a lightweight language for drawing UI wireframes using plain text char
 ## Quick Start
 
 ```markui
-+--- Login ---+
++--- Login ----
 |
 |  Username:
 |  <________________________>
@@ -19,7 +19,7 @@ MarkUI is a lightweight language for drawing UI wireframes using plain text char
 |
 |  [Login]  _Forgot password?_
 |
-+--+
++----
 ```
 
 Install the extension, open a `.markui` file, and press `Ctrl+Shift+V` to see the live preview.
@@ -82,13 +82,13 @@ Install the extension, open a `.markui` file, and press `Ctrl+Shift+V` to see th
 Open-right shorthand (no right border needed):
 
 ```markui
-+--- Form ---+
++--- Form ----
 |
 |  Name: <____________>
 |  Email: <____________>
 |  [Save]
 |
-+--+
++----
 ```
 
 Widgets on the **same line** flow horizontally. Separate lines flow vertically.

@@ -69,11 +69,11 @@ MarkUI documents can also be compiled to real UI frameworks (WPF, MAUI, HTML/CSS
 Right `|` is optional — a box can be defined by its left edge only:
 
 ```
-+--- Title ---+
++--- Title ----
 |
 |  content
 |
-+--+
++----
 ```
 
 ### Nested Box Prefix
@@ -81,17 +81,17 @@ Right `|` is optional — a box can be defined by its left edge only:
 `++` for level 2, `+++` for level 3:
 
 ```
-+--- Settings ---+
++--- Settings ----
 |
-++--- Profile ---+
+++--- Profile ----
 
   content here
 
-++--- Preferences ---+
+++--- Preferences ----
 
   more content
 
-+--+
++----
 ```
 
 ### Multi-Column Layout

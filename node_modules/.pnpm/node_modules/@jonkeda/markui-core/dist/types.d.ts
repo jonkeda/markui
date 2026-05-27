@@ -4,7 +4,7 @@ export interface Grid {
     height: number;
 }
 export type BorderStyle = 'solid' | 'dashed' | 'none';
-export type CornerChar = '+' | '*';
+export type CornerChar = '+' | 'v' | '>' | 'w';
 export interface Box {
     top: number;
     left: number;
@@ -22,8 +22,9 @@ export interface Box {
     parent?: Box;
     children: Box[];
     nestLevel: number;
+    hasNestedPrefix?: boolean;
 }
-export type WidgetType = 'Document' | 'Box' | 'Card' | 'HorizontalGroup' | 'VerticalGroup' | 'ColumnLayout' | 'FormField' | 'Button' | 'IconButton' | 'SplitButton' | 'Link' | 'Checkbox' | 'Radio' | 'TextInput' | 'PasswordInput' | 'DateInput' | 'NumberInput' | 'Textarea' | 'Dropdown' | 'CustomInput' | 'Toggle' | 'Slider' | 'Stepper' | 'Rating' | 'Badge' | 'Tag' | 'RemovableChip' | 'Icon' | 'Image' | 'Separator' | 'Spinner' | 'ProgressBar' | 'Label' | 'Heading' | 'Annotation' | 'Accordion' | 'Expander' | 'TreeNode' | 'ComponentRef' | 'SlotMarker' | 'Toast' | 'TabBar' | 'Tab' | 'ActiveTab' | 'Breadcrumb' | 'Pagination' | 'ListTruncation' | 'Table' | 'TableRow' | 'TableHeader' | 'TableCell' | 'ContextMenu' | 'DropdownOption' | 'PrevButton' | 'NextButton';
+export type WidgetType = 'Document' | 'Box' | 'VerticalList' | 'HorizontalList' | 'WrappedList' | 'HorizontalGroup' | 'VerticalGroup' | 'ColumnLayout' | 'FormField' | 'Button' | 'IconButton' | 'SplitButton' | 'Link' | 'Checkbox' | 'Radio' | 'TextInput' | 'PasswordInput' | 'DateInput' | 'NumberInput' | 'Textarea' | 'Dropdown' | 'CustomInput' | 'Toggle' | 'Slider' | 'Stepper' | 'Rating' | 'Badge' | 'Tag' | 'RemovableChip' | 'Icon' | 'Image' | 'Separator' | 'Spinner' | 'ProgressBar' | 'Label' | 'Heading' | 'Annotation' | 'Accordion' | 'Expander' | 'TreeNode' | 'ComponentRef' | 'SlotMarker' | 'Toast' | 'TabBar' | 'Tab' | 'ActiveTab' | 'Breadcrumb' | 'Pagination' | 'Table' | 'TableRow' | 'TableHeader' | 'TableCell' | 'ContextMenu' | 'DropdownOption' | 'PrevButton' | 'NextButton';
 export interface WidgetNode {
     type: WidgetType;
     text?: string;
@@ -40,6 +41,9 @@ export interface WidgetNode {
     percentage?: number;
     numerator?: number;
     denominator?: number;
+    scrollRight?: boolean;
+    scrollBottom?: boolean;
+    resizeDividers?: number[];
 }
 export interface ContentLine {
     text: string;
@@ -55,6 +59,7 @@ export interface LineToken {
     type: WidgetType;
     text: string;
     value?: string;
+    row?: number;
     start: number;
     end: number;
     state?: string;

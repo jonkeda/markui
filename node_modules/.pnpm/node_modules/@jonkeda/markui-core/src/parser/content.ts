@@ -73,9 +73,10 @@ function extractBoxContent(
   const contentLeft = box.left + 1;
   const contentRight = box.hasRightBorder ? box.right - 1 : grid.width - 1;
 
-  // If box has column dividers, split into column regions
-  if (box.columnDividers.length > 0) {
-    const dividers = [...box.columnDividers].sort((a, b) => a - b);
+  // If box has column dividers or resize dividers, split into column regions
+  const allDividers = [...box.columnDividers, ...box.resizeDividers].sort((a, b) => a - b);
+  if (allDividers.length > 0) {
+    const dividers = allDividers;
     const columns: ColumnRegion[] = [];
 
     const edges = [contentLeft, ...dividers.map(d => d), contentRight + 1];
@@ -105,7 +106,7 @@ function extractBoxContent(
       if (isRowCoveredByChild(r, contentLeft, contentRight, box, allBoxes, boxIndex)) continue;
       let lineChars: string[] = [];
       for (let c = contentLeft; c <= contentRight; c++) {
-        const ch = box.columnDividers.includes(c) ? ' ' : grid.rows[r][c];
+        const ch = allDividers.includes(c) ? ' ' : grid.rows[r][c];
         lineChars.push(ch);
       }
       allLines.push({ text: lineChars.join(''), row: r, colOffset: contentLeft });

@@ -1,0 +1,7 @@
+| Name    v | Role     | Status   |
+|----------|----------|----------|
+| Alice    | Engineer | (Active) |
+| Bob      | Designer | (Away)   |
+| Charlie  | PM       | (Busy)   |
+
+[<] 1 2 [[3]] 4 5 [>]

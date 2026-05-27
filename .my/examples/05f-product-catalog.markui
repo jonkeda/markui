@@ -1,0 +1,21 @@
++--- Product Catalog -------------------------------------------------------+
+|                                                                          |
+|  Home > Products > Electronics                                           |
+|                                                                          |
+|  ## Electronics                                                          |
+|                                                                          |
+|  <Search products____________> [#1 Search]                               |
+|                                                                          |
+|  Category: <All Categories v>   Sort: <Price: Low to High v>             |
+|                                                                          |
+|  >--- Product -------->  >--- Product -------->  >--- Product -------->  |
+|  | !==IMG==!           |  | !==IMG==!           |  | !==IMG==!           |  |
+|  | Wireless Mouse     |  | USB Keyboard        |  | Monitor Stand      |  |
+|  | $29.99             |  | $49.99              |  | $79.99             |  |
+|  | [***..] 3/5        |  | [****.]  4/5        |  | [*****.] 5/5       |  |
+|  | [Add to Cart]      |  | [Add to Cart]       |  | [Add to Cart]      |  |
+|  >-------------------->  >--------------------->  >-------------------->  |
+|                                                                          |
+|  [<] 1  [[2]]  3  4  5  ...  12 [>]                                     |
+|                                                                          |
++--------------------------------------------------------------------------+

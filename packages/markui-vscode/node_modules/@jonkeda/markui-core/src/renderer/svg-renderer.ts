@@ -40,7 +40,9 @@ function renderNode(
       renderBox(node, t, out, baseX, baseY, cw, lh, false);
       break;
 
-    case 'Card':
+    case 'VerticalList':
+    case 'HorizontalList':
+    case 'WrappedList':
       renderBox(node, t, out, baseX, baseY, cw, lh, true);
       break;
 
@@ -197,10 +199,6 @@ function renderNode(
       for (const child of node.children) renderNode(child, t, out, baseX, baseY, cw, lh);
       break;
 
-    case 'ListTruncation':
-      out.push(`<text x="${x}" y="${y + lh * 0.7}" class="mu-text" fill="${t.foreground}">...</text>`);
-      break;
-
     case 'Table':
       renderTable(node, t, out, x, y, cw, lh, baseX, baseY);
       break;
@@ -241,6 +239,24 @@ function renderBox(
 
   out.push(`<g>`);
 
+  // Nested prefix sub-sections (++---) render as a top separator line + title only
+  if (node.level && node.level > 0) {
+    out.push(
+      `<line x1="${x}" y1="${y + lh * 0.5}" x2="${x + w}" y2="${y + lh * 0.5}" ` +
+      `stroke="${t.border}" stroke-width="1" opacity="0.7"/>`
+    );
+    if (node.text) {
+      out.push(
+        `<text x="${x + 8}" y="${y + lh * 0.7}" class="mu-text" font-weight="600" font-size="${t.fontSize * 0.95}px">${esc(node.text)}</text>`
+      );
+    }
+    for (const child of node.children) {
+      renderNode(child, t, out, baseX, baseY, cw, lh);
+    }
+    out.push('</g>');
+    return;
+  }
+
   // Shadow for cards
   if (isCard) {
     out.push(`<rect x="${x + 2}" y="${y + 2}" width="${w}" height="${h}" rx="${rx}" fill="rgba(0,0,0,0.08)"/>`);
@@ -262,11 +278,42 @@ function renderBox(
     renderNode(child, t, out, baseX, baseY, cw, lh);
   }
 
+  // Scrollbar indicators
+  if (node.scrollRight) {
+    const sbw = 6;
+    const sbx = x + w - sbw - 2;
+    const sby = y + lh + 2;
+    const sbh = h - lh - 6;
+    out.push(`<rect x="${sbx}" y="${sby}" width="${sbw}" height="${sbh}" rx="3" fill="${t.scrollbarBg}"/>`);
+    const thumbH = Math.max(sbh * 0.35, 12);
+    out.push(`<rect x="${sbx}" y="${sby}" width="${sbw}" height="${thumbH}" rx="3" fill="${t.border}" opacity="0.5"/>`);
+  }
+  if (node.scrollBottom) {
+    const sbh = 6;
+    const sbx = x + 4;
+    const sby = y + h - sbh - 2;
+    const sbw = w - 10;
+    out.push(`<rect x="${sbx}" y="${sby}" width="${sbw}" height="${sbh}" rx="3" fill="${t.scrollbarBg}"/>`);
+    const thumbW = Math.max(sbw * 0.35, 12);
+    out.push(`<rect x="${sbx}" y="${sby}" width="${thumbW}" height="${sbh}" rx="3" fill="${t.border}" opacity="0.5"/>`);
+  }
+
+  // Resize divider grip handles
+  if (node.resizeDividers) {
+    for (const dc of node.resizeDividers) {
+      const dx = baseX + dc * cw;
+      // Dotted vertical line
+      out.push(`<line x1="${dx}" y1="${y}" x2="${dx}" y2="${y + h}" stroke="${t.border}" stroke-width="1" stroke-dasharray="3 3"/>`);
+      // Grip dots (3 dots centered vertically)
+      const midY = y + h / 2;
+      for (let di = -1; di <= 1; di++) {
+        out.push(`<circle cx="${dx}" cy="${midY + di * 8}" r="2" fill="${t.border}" opacity="0.6"/>`);
+      }
+    }
+  }
+
   out.push('</g>');
 }
-
-// ---------------------------------------------------------------------------
-// Toast
 // ---------------------------------------------------------------------------
 
 function renderToast(
@@ -415,8 +462,8 @@ function renderTextInput(
   x: number, y: number, cw: number, lh: number
 ): void {
   const w = Math.max(node.width * cw, 60);
-  const h = lh + 4;
-  const by = y + 2;
+  const h = lh - 2;
+  const by = y + 1;
 
   const stroke = node.type === 'CustomInput' ? `stroke-dasharray="4 2" stroke="${t.inputBorder}"` : `stroke="${t.inputBorder}"`;
 

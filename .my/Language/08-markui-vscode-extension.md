@@ -669,13 +669,13 @@ MarkUI wireframes in `.md` files use fenced code blocks:
 
 ````markdown
 ```markui
-+--- Login ---+
++--- Login ----
 |
 |  Username: <____________>
 |  Password: <____________>
 |  [Login]
 |
-+--+
++----
 ```
 ````
 
@@ -683,9 +683,9 @@ Named blocks are also supported:
 
 ````markdown
 ```markui:login-form
-+--- Login ---+
++--- Login ----
 | ...
-+--+
++----
 ```
 ````
 

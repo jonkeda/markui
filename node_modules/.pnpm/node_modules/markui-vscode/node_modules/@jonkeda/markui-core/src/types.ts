@@ -7,7 +7,7 @@ export interface Grid {
 
 // === Box Types ===
 export type BorderStyle = 'solid' | 'dashed' | 'none';
-export type CornerChar = '+' | '*';
+export type CornerChar = '+' | 'v' | '>' | 'w';
 
 export interface Box {
   top: number;
@@ -16,7 +16,7 @@ export interface Box {
   right: number;
   title?: string;
   typeName?: string;       // @Modal, @Drawer etc.
-  cornerChar: CornerChar;  // '+' = box, '*' = card
+  cornerChar: CornerChar;  // '+' = box, 'v' = vertical list, '>' = horizontal list, 'w' = wrapped list
   borderStyle: BorderStyle;
   hasRightBorder: boolean;
   scrollRight: boolean;
@@ -26,11 +26,12 @@ export interface Box {
   parent?: Box;
   children: Box[];
   nestLevel: number;        // 0 = root, for ++--- prefix boxes
+  hasNestedPrefix?: boolean; // true if box contains ++--- sub-sections
 }
 
 // === Token Types ===
 export type WidgetType =
-  | 'Document' | 'Box' | 'Card' | 'HorizontalGroup' | 'VerticalGroup'
+  | 'Document' | 'Box' | 'VerticalList' | 'HorizontalList' | 'WrappedList' | 'HorizontalGroup' | 'VerticalGroup'
   | 'ColumnLayout' | 'FormField'
   | 'Button' | 'IconButton' | 'SplitButton' | 'Link'
   | 'Checkbox' | 'Radio' | 'TextInput' | 'PasswordInput' | 'DateInput'
@@ -41,7 +42,7 @@ export type WidgetType =
   | 'Annotation' | 'Accordion' | 'Expander' | 'TreeNode'
   | 'ComponentRef' | 'SlotMarker' | 'Toast'
   | 'TabBar' | 'Tab' | 'ActiveTab' | 'Breadcrumb' | 'Pagination'
-  | 'ListTruncation' | 'Table' | 'TableRow' | 'TableHeader' | 'TableCell'
+  | 'Table' | 'TableRow' | 'TableHeader' | 'TableCell'
   | 'ContextMenu' | 'DropdownOption' | 'PrevButton' | 'NextButton';
 
 export interface WidgetNode {
@@ -60,6 +61,9 @@ export interface WidgetNode {
   percentage?: number;
   numerator?: number;
   denominator?: number;
+  scrollRight?: boolean;
+  scrollBottom?: boolean;
+  resizeDividers?: number[];
 }
 
 // === Content Types ===
@@ -80,6 +84,7 @@ export interface LineToken {
   type: WidgetType;
   text: string;
   value?: string;
+  row?: number;       // source grid row (set by stampRow)
   start: number;      // column offset in the content line
   end: number;        // exclusive end column
   state?: string;

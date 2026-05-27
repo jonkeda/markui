@@ -39,17 +39,23 @@
       "+--------------+"
     ]
   },
-  "Card": {
-    "prefix": "card",
-    "description": "Repeatable card with star corners",
+  "Vertical List": {
+    "prefix": "vlist",
+    "description": "Vertical list container",
     "body": [
-      "*--- ${1:Card Title} ---*",
-      "|                      |",
-      "| ${2:Card content}       |",
-      "|                      |",
-      "| [${3:Action}]            |",
-      "|                      |",
-      "*----------------------*"
+      "v--- ${1:Item} ---v",
+      "| ${2:Content}       |",
+      "| [${3:Action}]      |",
+      "v-----------------v"
+    ]
+  },
+  "Horizontal List": {
+    "prefix": "hlist",
+    "description": "Horizontal list container",
+    "body": [
+      ">--- ${1:Item} --->",
+      "| ${2:Content}      |",
+      ">----------------->"
     ]
   },
   "Dock Layout": {
@@ -108,10 +114,10 @@
     "prefix": "toast",
     "description": "Toast notification message",
     "body": [
-      "*--- ${1:(v)} ${2:Success} ---*",
+      "+--- ${1:(v)} ${2:Success} ---+",
       "| ${3:Operation completed}  |",
       "| ${4:successfully.}        |",
-      "*----------------------*"
+      "+----------------------+"
     ]
   }
 }

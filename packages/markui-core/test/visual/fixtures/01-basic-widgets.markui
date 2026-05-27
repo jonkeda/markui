@@ -1,0 +1,13 @@
+# Basic Widgets
+
+[Primary] [Secondary] [#1 Search]
+
+[x] Enabled   [ ] Disabled   [-] Mixed
+
+Mode: (*) Auto  ( ) Manual
+
+Status {3} (Beta) (Draft x)
+
+Progress [======....] 60%
+Rating   [***..] 3/5
+Count    [- 42 +]

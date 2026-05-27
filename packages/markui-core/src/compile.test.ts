@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import path from 'path';
 import { compile, parse } from './index';
 import type { WidgetNode, WidgetType } from './types';
 
@@ -18,6 +20,10 @@ function findAllByType(node: WidgetNode, type: WidgetType): WidgetNode[] {
     results.push(...findAllByType(child, type));
   }
   return results;
+}
+
+function visualFixture(name: string): string {
+  return readFileSync(path.resolve(__dirname, '../test/visual/fixtures', name), 'utf8');
 }
 
 describe('compile', () => {
@@ -121,17 +127,18 @@ describe('parse - complex scenarios', () => {
     expect(buttons.length).toBe(2);
   });
 
-  it('should parse a card with various widgets', () => {
+  it('should parse a vertical list with various widgets', () => {
     const src = [
-      '*--- Product ---*',
-      '| Widget A      |',
-      '| $19.99        |',
-      '| [Buy Now]     |',
-      '*---------------*',
+      'v--- Product ----v',
+      '| Widget A       |',
+      '| $19.99         |',
+      '| [Add to cart]  |',
+      'v----------------v',
     ].join('\n');
-    const { tree } = parse(src, { mode: 'autofix' });
-    const card = findByType(tree, 'Card');
-    expect(card).toBeDefined();
+    const { tree } = compile(src);
+    const list = tree.children.find(n => n.type === 'VerticalList');
+    expect(list).toBeDefined();
+    expect(list!.text).toBe('Product');
   });
 
   it('should parse tab bar syntax', () => {
@@ -179,7 +186,7 @@ describe('parse - complex scenarios', () => {
   it('should handle unicode box-drawing', () => {
     const src = [
       '┌─── Title ───┐',
-      '│ content      │',
+      '│ content     │',
       '└─────────────┘',
     ].join('\n');
     const { tree } = parse(src, { mode: 'autofix' });
@@ -193,6 +200,24 @@ describe('parse - complex scenarios', () => {
     const { tree } = parse(src, { mode: 'autofix' });
     const bc = findByType(tree, 'Breadcrumb');
     expect(bc).toBeDefined();
+  });
+
+  it('should strip open accordion guide markers from content', () => {
+    const src = [
+      '[FAQ ^]',
+      '|  You can return items within 30 days.',
+      '+--+',
+      '',
+      '[Shipping v]',
+    ].join('\n');
+    const { svg, tree } = compile(src);
+    const accordion = findByType(tree, 'Accordion');
+    const labels = findAllByType(tree, 'Label').map(label => label.text);
+
+    expect(accordion).toBeDefined();
+    expect(labels).toContain('You can return items within 30 days.');
+    expect(labels).not.toContain('|  You can return items within 30 days.');
+    expect(svg).not.toContain('+--+');
   });
 
   it('should parse tree view', () => {
@@ -223,5 +248,66 @@ describe('parse - complex scenarios', () => {
     if (box) {
       expect(box.text).toContain('Settings');
     }
+  });
+});
+
+describe('visual regression fixtures', () => {
+  it('keeps both columns in the column layout fixture', () => {
+    const { tree } = parse(visualFixture('04-column-layout.markui'), { mode: 'autofix' });
+    const columnLayout = findByType(tree, 'ColumnLayout');
+    expect(columnLayout).toBeDefined();
+    expect(columnLayout!.children).toHaveLength(2);
+    expect(findByType(tree, 'Heading')?.text).toBe('Dashboard');
+    expect(findAllByType(tree, 'TableCell').map(cell => cell.text)).toContain('Team B');
+  });
+
+  it('renders the contact form fixture as a box with a textarea', () => {
+    const { tree } = parse(visualFixture('05-form-annotations.markui'), { mode: 'autofix' });
+    const box = findByType(tree, 'Box');
+    expect(box?.text).toBe('Contact');
+    expect(findByType(tree, 'Textarea')).toBeDefined();
+    expect(findByType(tree, 'Annotation')?.text).toBe('We will only use this for the reply');
+    expect(findAllByType(tree, 'Button').map(button => button.text)).toEqual(expect.arrayContaining(['Send', 'Cancel']));
+  });
+
+  it('recognizes all list container marker styles', () => {
+    const { tree } = parse(visualFixture('07-list-containers.markui'), { mode: 'autofix' });
+    expect(findByType(tree, 'VerticalList')?.text).toBe('Product');
+    expect(findByType(tree, 'HorizontalList')?.text).toBe('Suggested');
+    expect(findByType(tree, 'WrappedList')?.text).toBe('Tag');
+    expect(findAllByType(tree, 'Button').map(button => button.text)).toEqual(expect.arrayContaining(['Add']));
+  });
+
+  it('keeps tabbed navigation inside its container', () => {
+    const { tree } = parse(visualFixture('08-tabs-and-navigation.markui'), { mode: 'autofix' });
+    expect(findByType(tree, 'Box')).toBeDefined();
+    expect(findByType(tree, 'TabBar')).toBeDefined();
+    expect(findByType(tree, 'Breadcrumb')).toBeDefined();
+    expect(findByType(tree, 'Pagination')).toBeDefined();
+    expect(findByType(tree, 'Expander')?.text).toBe('Details');
+    expect(findAllByType(tree, 'Label').map(label => label.text?.trim())).toContain('Owner: Team UI');
+  });
+
+  it('keeps dense dashboard cards and table inside the dashboard box', () => {
+    const { tree } = parse(visualFixture('09-dense-dashboard.markui'), { mode: 'autofix' });
+    const dashboard = tree.children.find(node => node.type === 'Box' && node.text === 'Admin Dashboard');
+    expect(dashboard).toBeDefined();
+    expect(dashboard!.children.filter(child => child.type === 'Box')).toHaveLength(3);
+    const table = findByType(tree, 'Table');
+    expect(table).toBeDefined();
+    expect(table!.row).toBe(9);
+    expect(findAllByType(tree, 'TableCell').map(cell => cell.text)).toContain('Billing');
+  });
+
+  it('keeps the preview regression content and nested message card', () => {
+    const { tree } = parse(visualFixture('10-current-bad-preview.markui'), { mode: 'autofix' });
+    const preview = tree.children.find(node => node.type === 'Box' && node.text === 'Preview Regression Candidate');
+    expect(preview).toBeDefined();
+    expect(findByType(tree, 'ColumnLayout')).toBeDefined();
+    expect(findByType(tree, 'VerticalList')?.text).toBe('Message');
+    expect(findByType(tree, 'Icon')?.iconIndex).toBe(1);
+    expect(findByType(tree, 'ActiveTab')?.text).toBe('Open');
+    expect(findAllByType(tree, 'Button').map(button => button.text)).toEqual(expect.arrayContaining(['Reply', 'Archive']));
+    expect(findByType(tree, 'Annotation')?.text).toBe('Watch for text clipping, nested box drift, and list styling.');
   });
 });

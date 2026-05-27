@@ -7,7 +7,10 @@
   "scripts": {
     "build": "tsc",
     "test": "vitest run",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "visual": "pnpm run visual:svg && pnpm run visual:gallery",
+    "visual:svg": "vitest run src/renderer/svg-sanity.test.ts",
+    "visual:gallery": "pnpm run build && node ../../scripts/generate-visual-gallery.cjs"
   },
   "devDependencies": {
     "typescript": "^5.4.0",

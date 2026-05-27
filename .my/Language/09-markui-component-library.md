@@ -244,7 +244,7 @@ Second section content
 ### Open-Right Box
 
 ```markui
-+--- Login ---+
++--- Login ----
 |
 |  Username:
 |  <________________________>
@@ -256,17 +256,17 @@ Second section content
 |
 |  [Login]  _Forgot password?_
 |
-+--+
++----
 ```
 
-### Card (Repeatable)
+### List Container (Horizontal)
 
 ```markui
-*--- Product ---* *--- Product ---*
+>--- Product ---> >--- Product --->
 | Widget A      | | Widget B      |
 | $19.99        | | $29.99        |
 | [Add to cart] | | [Add to cart] |
-*---------------* *---------------*
+>---------------> >--------------->
 ```
 
 ---
@@ -287,9 +287,9 @@ Second section content
 ### Prefix Nested
 
 ```markui
-+--- Settings ---+
++--- Settings ----
 |
-++--- Profile ---+
+++--- Profile ----
 
   Name:
   <John Doe____________>
@@ -297,12 +297,12 @@ Second section content
   Bio:
   <________________________>
 
-++--- Preferences ---+
+++--- Preferences ----
 
   Dark mode     {[on]/off}
   Notifications {[on]/off}
 
-+--+
++----
 ```
 
 ---
@@ -445,7 +445,7 @@ Home > Products > Electronics > Laptops
 ### Drawer
 
 ```markui
-+--@Drawer--- Filter Results ---+
++--@Drawer--- Filter Results ----
 |
 |  Category:
 |  <All categories v>
@@ -458,7 +458,7 @@ Home > Products > Electronics > Laptops
 |
 |  [Apply Filters]
 |
-+--+
++----
 ```
 
 ---
@@ -484,7 +484,7 @@ Home > Products > Electronics > Laptops
 ## 16. Annotations
 
 ```markui
-+--- Registration ---+
++--- Registration ----
 |
 |  Full Name:
 |  <________________________>
@@ -501,7 +501,7 @@ Home > Products > Electronics > Laptops
 |  [Create Account]
 |  ($) Click to submit the registration
 |
-+--+
++----
 ```
 
 ---
@@ -534,19 +534,19 @@ Home > Products > Electronics > Laptops
 Define reusable components using named blocks:
 
 ```markui:user-card
-*-----------------------*
++-----------------------+
 | !==IMG==!  User Name  |
 |            Role       |
-*-----------------------*
++-----------------------+
 ```
 
 ```markui:product-tile
-*-----------------------*
++-----------------------+
 | !==IMG==!             |
 | Product Name          |
 | $00.00                |
 | [Add to cart]         |
-*-----------------------*
++-----------------------+
 ```
 
 ### Using Components
@@ -554,13 +554,13 @@ Define reusable components using named blocks:
 Reference components with `@name`:
 
 ```markui
-+--- Team Members ---+
++--- Team Members ----
 |
 |  @user-card
 |  @user-card
 |  @user-card
 |
-+--+
++----
 ```
 
 ---

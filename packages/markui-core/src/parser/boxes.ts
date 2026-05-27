@@ -1,7 +1,7 @@
 import { Grid, Box, BorderStyle, CornerChar, ParseError, ParseMode } from '../types';
 
 function isCorner(ch: string): ch is CornerChar {
-  return ch === '+' || ch === '*';
+  return ch === '+' || ch === 'v' || ch === '>' || ch === 'w';
 }
 
 function isHBorder(ch: string): boolean {
@@ -51,18 +51,20 @@ function extractTitle(grid: Grid, box: Box): void {
   const right = box.right - 1;
   if (right <= left) return;
 
+  const rawTitleArea = grid.rows[r].slice(left, right + 1).join('');
   let titleChars: string[] = [];
   let inTitle = false;
 
   for (let c = left; c <= right; c++) {
     const ch = grid.rows[r][c];
-    if (ch !== '-' && ch !== '#' && ch !== '.' && ch !== ' ') {
+    if (inTitle) {
+      if (ch === '-' || ch === '#' || ch === '.') {
+        break;
+      }
+      titleChars.push(ch);
+    } else if (ch !== '-' && ch !== '#' && ch !== '.' && ch !== ' ' && !isCorner(ch)) {
       inTitle = true;
       titleChars.push(ch);
-    } else if (inTitle && ch === ' ') {
-      titleChars.push(ch);
-    } else if (inTitle && (ch === '-' || ch === '#' || ch === '.')) {
-      break;
     }
   }
 
@@ -73,7 +75,9 @@ function extractTitle(grid: Grid, box: Box): void {
     const typeMatch = title.match(/@(\w+)/);
     if (typeMatch) {
       box.typeName = typeMatch[1];
-      box.title = title.replace(/@\w+/, '').trim() || undefined;
+      const afterType = rawTitleArea.slice(rawTitleArea.indexOf(typeMatch[0]) + typeMatch[0].length);
+      const trailingTitle = afterType.replace(/^[-#.\s]+/, '').replace(/[-#.\s]+$/, '').trim();
+      box.title = trailingTitle || title.replace(/@\w+/, '').trim() || undefined;
     }
   }
 }
@@ -134,16 +138,31 @@ function tryBox(grid: Grid, r: number, c: number): Box | null {
   // Collect all potential top-right corners
   const topRightCandidates: number[] = [];
   let hasDash = false;
+  let lastDash = -1;
   for (let ci = startC + 1; ci < grid.width; ci++) {
     const ch = grid.rows[r][ci];
+    if (ch === '-' || ch === '#' || ch === '.') {
+      hasDash = true;
+      lastDash = ci;
+      continue;
+    }
     if (isCorner(ch)) {
       if (hasDash) {
         topRightCandidates.push(ci);
+      } else {
+        // A plain + without a border run usually starts a separate adjacent box.
+        // Marker letters like v/w can also appear inside titles.
+        if (ch === '+') break;
       }
+      hasDash = false;
+      continue;
     }
-    if (ch === '-' || ch === '#' || ch === '.') {
-      hasDash = true;
-    }
+    if (ch !== ' ') hasDash = false;
+  }
+
+  // If no corner found but we have dashes, allow open-right (no trailing +)
+  if (topRightCandidates.length === 0 && lastDash > startC + 1) {
+    topRightCandidates.push(lastDash);
   }
 
   if (topRightCandidates.length === 0) return null;
@@ -154,13 +173,22 @@ function tryBox(grid: Grid, r: number, c: number): Box | null {
 
     // Scan down from top-left for bottom-left corner
     let r2 = -1;
+    let hasNestedPrefix = false;
     for (let ri = r + 1; ri < grid.height; ri++) {
       const ch = grid.rows[ri][c];
       if (isCorner(ch)) {
+        // Skip nested prefix markers (++, +++) — they are sub-section headers
+        if (c + 1 < grid.width && grid.rows[ri][c + 1] === '+') {
+          hasNestedPrefix = true;
+          continue;
+        }
         r2 = ri;
         break;
       }
-      if (!isVBorder(ch)) break;
+      if (!isVBorder(ch)) {
+        if (hasNestedPrefix) continue; // content between nested sections
+        break;
+      }
     }
     if (r2 === -1) continue;
 
@@ -201,16 +229,21 @@ function tryBox(grid: Grid, r: number, c: number): Box | null {
       }
     }
 
-    // Verify left border
+    // Verify left border (relaxed for nested prefix boxes)
     let leftOk = true;
-    for (let ri = r + 1; ri < r2; ri++) {
-      const ch = grid.rows[ri][c];
-      if (!isVBorder(ch)) {
-        leftOk = false;
-        break;
+    if (!hasNestedPrefix) {
+      for (let ri = r + 1; ri < r2; ri++) {
+        const ch = grid.rows[ri][c];
+        if (!isVBorder(ch)) {
+          leftOk = false;
+          break;
+        }
       }
     }
     if (!leftOk) continue;
+
+    // Open-right boxes must not have a trailing corner char
+    if (!hasRightBorder && isCorner(grid.rows[r][c2])) continue;
 
     // Detect border style
     const topDashed = isDashedBorder(grid, r, c + 1, c2 - 1);
@@ -277,6 +310,7 @@ function tryBox(grid: Grid, r: number, c: number): Box | null {
       columnDividers,
       children: [],
       nestLevel,
+      hasNestedPrefix,
     };
 
     extractTitle(grid, box);
@@ -350,7 +384,8 @@ export function detectBoxes(
       if (
         inner.top === outer.top &&
         inner.bottom === outer.bottom &&
-        (outer.columnDividers.includes(inner.left) || outer.columnDividers.includes(inner.right))
+        (outer.columnDividers.includes(inner.left) || outer.columnDividers.includes(inner.right) ||
+         outer.resizeDividers.includes(inner.left) || outer.resizeDividers.includes(inner.right))
       ) {
         toRemove.add(i);
       }
@@ -358,6 +393,60 @@ export function detectBoxes(
   }
 
   const filtered = boxes.filter((_, i) => !toRemove.has(i));
+
+  // Create sub-boxes for nested prefix sections (++---, +++---)
+  const nestedSubs: Box[] = [];
+  for (const box of filtered) {
+    if (!box.hasNestedPrefix) continue;
+
+    // Find ++ lines inside the box
+    const nestedRows: number[] = [];
+    for (let r = box.top + 1; r < box.bottom; r++) {
+      if (
+        grid.rows[r][box.left] === '+' &&
+        box.left + 1 < grid.width &&
+        grid.rows[r][box.left + 1] === '+'
+      ) {
+        nestedRows.push(r);
+      }
+    }
+
+    // Create sub-box for each nested section
+    for (let ni = 0; ni < nestedRows.length; ni++) {
+      const nestedR = nestedRows[ni];
+      const nextR = ni + 1 < nestedRows.length ? nestedRows[ni + 1] : box.bottom;
+
+      // Find lastDash on the ++ line for the right edge
+      let lastDash = -1;
+      for (let ci = box.left + 2; ci < grid.width; ci++) {
+        const ch = grid.rows[nestedR][ci];
+        if (ch === '-') lastDash = ci;
+      }
+      if (lastDash === -1) continue;
+
+      const subBox: Box = {
+        top: nestedR,
+        left: box.left,
+        bottom: nextR,
+        right: lastDash,
+        cornerChar: '+',
+        borderStyle: 'solid',
+        hasRightBorder: false,
+        scrollRight: false,
+        scrollBottom: false,
+        resizeDividers: [],
+        columnDividers: [],
+        children: [],
+        nestLevel: 1,
+        parent: box,
+      };
+
+      extractTitle(grid, subBox);
+      box.children.push(subBox);
+      nestedSubs.push(subBox);
+    }
+  }
+  filtered.push(...nestedSubs);
 
   buildContainmentTree(filtered);
 

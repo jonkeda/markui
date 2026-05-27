@@ -1,0 +1,6 @@
+node_modules/
+test-results/
+packages/markui-core/test/visual/__generated__/
+packages/markui-core/test/visual/__diff__/
+packages/markui-vscode/test/visual/__generated__/
+packages/markui-vscode/test/visual/__diff__/

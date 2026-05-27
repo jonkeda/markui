@@ -1,0 +1,7 @@
+interface:
+  display_name: "MarkUI Visual Review"
+  short_description: "Manual visual review of MarkUI previews"
+  default_prompt: "Use $markui-visual-review to compare generated MarkUI preview images against their source."
+
+policy:
+  allow_implicit_invocation: false

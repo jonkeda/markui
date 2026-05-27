@@ -1,7 +1,7 @@
 # MarkUI Specification
 
-**Date:** 2026-05-22
-**Status:** v3.1
+**Date:** 2026-05-27
+**Status:** v3.2
 
 ---
 
@@ -24,7 +24,7 @@ MarkUI documents can also be compiled to real UI frameworks (WPF, MAUI, HTML/CSS
 | **ASCII is the UI**    | What you type is what you see. No rendering pipeline.                    |
 | **Monospaced always**  | Everything assumes a fixed-width font. Alignment is spatial.             |
 | **Boxes are layout**   | ASCII box characters (`+`, `-`, `|`) define containers and structure.    |
-| **Glyphs are widgets** | Inline ASCII patterns are the widget vocabulary. No tags, no attributes. |
+| **Glyphs are widgets** | Inline ASCII patterns are the widget vocabulary. Semantic markers stay compact. |
 | **Readable first**     | If a feature makes the ASCII unreadable, it's wrong.                     |
 | **No modifiers**       | No disabled, required, error, read-only, or stretch markers.             |
 
@@ -33,12 +33,14 @@ MarkUI documents can also be compiled to real UI frameworks (WPF, MAUI, HTML/CSS
 ## 3. File Format
 
 - Extension: `.markui`
-- Encoding: UTF-8, pure ASCII
+- Encoding: UTF-8
+- Prefer ASCII for generated examples; documented Unicode input is valid
 - All content is monospaced
 - One screen per file, no prose text
 - Multiple screens or explanatory text: use `.md` files with ` ```markui ` fenced blocks
-- Named blocks in `.md` files: ` ```markui:@component-name ` makes blocks referenceable as `@component-name`
+- Named blocks in `.md` files: ` ```markui:component-name ` makes blocks referenceable as `@component-name`
 - Icon meanings (`#N`) are defined in surrounding `.md` context, not inside wireframes
+- Widget syntax is defined canonically in `04-markui-widget-reference.md` and its `04a-*` through `04i-*` chapters
 
 ---
 
@@ -63,6 +65,18 @@ MarkUI documents can also be compiled to real UI frameworks (WPF, MAUI, HTML/CSS
 
 - `+` corners, `-` horizontal border, `|` vertical border
 - Unicode box drawing is accepted as input but ASCII is preferred
+- Boxes can include semantic types on the border, such as `+--@Modal--- Confirm --+`
+
+### Boxless UI
+
+MarkUI does not require a surrounding box:
+
+```
+Username:
+<Jane____________>
+
+[Login]
+```
 
 ### Open-Right Shorthand
 
@@ -116,17 +130,27 @@ Adjacent boxes on the same line are also valid for major page regions.
 | `|`  | Vertical border / column divider            |
 | `.`  | Resizable splitter (replaces `-` or `|`)    |
 | `#`  | Scroll indicator (replaces `-` or `|`)      |
-| `*`  | Card/item corner (repeatable element)       |
+| `v`  | Vertical list container corner              |
+| `>`  | Horizontal list container corner            |
+| `w`  | Wrapped list container corner               |
 
-### Cards
+### List Containers
 
-`*` corners distinguish repeatable items from structural boxes:
+List containers distinguish repeatable regions from structural boxes:
 
 ```
-*--- Product ---*
-| Widget A      |
-| $19.99        |
-*---------------*
+v--- Product ----------------v
+| Widget A       $19.99      |
+| [Add to cart]              |
+v----------------------------v
+
+>--- Product --->  >--- Product --->
+| Widget A      |  | Widget B      |
+>--------------->  >--------------->
+
+w--- Tags --------------------w
+| (React) (TypeScript)        |
+w-----------------------------w
 ```
 
 ### Sizing
@@ -142,13 +166,17 @@ When running interactively (terminal or VS Code panel), the document is live:
 | Widget                  | Interaction                          |
 |-------------------------|--------------------------------------|
 | `[Button]`              | Click fires action                   |
-| `<v Dropdown>`          | Click expands to show options        |
-| `[ ]` / `[x]`          | Click toggles check state            |
+| `[Button][v]`           | Click opens attached action menu     |
+| `<Dropdown v>`          | Click expands to show options        |
+| `<Dropdown ^>`          | Click collapses visible options      |
+| `[ ]` / `[x]` / `[-]`   | Click toggles check state            |
 | `{[on]/off}`            | Click toggles state                  |
 | `(*)`                   | Click selects, deselects siblings    |
-| `[^ Accordion]`         | Click expands/collapses content      |
+| `[Section ^]`           | Click collapses an expander section  |
+| `[Section v]`           | Click expands an expander section    |
 | `<____>`                | Click enters text editing mode       |
 | `[=====.....]`          | Drag adjusts value                   |
+| `[[Tab]]`               | Click selects active tab             |
 
 ### State
 
@@ -183,42 +211,60 @@ Code generation is backend-specific. The MarkUI parser produces a **widget tree*
 ```
 document     = (box | prefix-section | content-line)*
 box          = top-border newline (content-line newline)* bottom-border
-top-border   = "+" ("-" | title)* "+"
-bottom-border= "+" "-"* "+"
+top-border   = corner ("-" | title | type-marker)* corner?
+bottom-border= corner ("-" | "." | "#")* corner?
+corner       = "+" | "v" | ">" | "w"
 content-line = "|" (widget | text | nested-box)* "|"?
+type-marker  = "@" ident
 
-widget       = button | dropdown | checkbox | radio | toggle | input
-             | accordion | slider | separator | badge | tag | icon
-             | image | link | rating | stepper | spinner
+widget       = heading | button | icon-button | split-button
+             | prev-next | active-tab | dropdown | custom-input
+             | checkbox | radio | toggle | input | textarea
+             | expander | accordion | slider | progress
+             | separator | badge | chip | icon | image | link
+             | rating | stepper | spinner | annotation
+             | component-reference | slot
 
+heading      = "#"+" " label
 button       = "[" label "]"
-dropdown     = "<" ("v" | "^") " " label ">"
+icon-button  = "[" "#" digit " " label "]"
+split-button = "[" label "]" "[" ("v" | "^") "]"
+prev-next    = "[" ("<" | ">") "]"
+active-tab   = "[[" label "]]"
+dropdown     = "<" label " " ("v" | "^") ">"
+custom-input = "<@" ident ">"
 checkbox     = "[" (" " | "x" | "-") "]"
 radio        = "(" ("*" | " ") ")"
 toggle       = "{" "[" state "]" "/" state "}"
 input        = "<" ("_" | text)+ ">"
-accordion    = "[" ("^" | "v") " " label "]"
+textarea     = input newline input+
+expander     = "[" label " " ("^" | "v") "]"
+accordion    = expander (blank-line expander)*
 slider       = "[" "="* "."* "]"
+progress     = "[" "="* "."* "]"
 rating       = "[" "*"* "."* "]"
 stepper      = "[" "- " number " +" "]"
 badge        = "{" (digit+ | "!") "}"
-tag          = "(" label ")"
+chip         = "(" label (" x")? ")"
 icon         = "#" digit
-image        = "!" "="+ "!"
-link         = "&" text
+image        = "!" ("=" | text)+ "!"
+link         = "_" text "_"
 separator    = "---"+
-spinner      = "[" ("/" | "\") "]"
+spinner      = "[" ("/" | "\\") "]"
+annotation   = "(" ("?" | "$" | "!" | "i" | "x" | "v") ")" text
+component-reference = "@" ident
+slot         = "{@slot" (":" ident)? "}"
 
 label        = (printable-char - special)+
 title        = " " label " "
 ```
 
-This is illustrative, not formal. See `07-markui-parser-architecture.md` for parser design.
+This is illustrative, not formal. Square brackets and angle brackets are resolved by the priority rules in `04-markui-widget-reference.md`. See `07-markui-parser-architecture.md` for parser design.
 
 ---
 
 ## 8. Next Steps
 
-1. **Reference parser** — TypeScript or C# implementation
-2. **VS Code extension** — syntax highlighting, live preview, interactive mode
-3. **Code-gen backend** — HTML/CSS as the simplest target
+1. Keep the TypeScript parser aligned with the canonical `04-*` widget references.
+2. Keep the VS Code grammar, snippets, markdown preview, and notebook renderer aligned with language changes.
+3. Validate `.markui` examples and fenced `markui` blocks when the grammar changes.

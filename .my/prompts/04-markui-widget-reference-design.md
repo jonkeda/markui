@@ -602,7 +602,7 @@ Components:
 
 Required examples:
 
-- `markui:@user-card`
+- `markui:user-card`
 - `@user-card`
 - `<@datepicker>`
 - `{@slot}`

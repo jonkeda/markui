@@ -1,0 +1,7 @@
+interface:
+  display_name: "MarkUI"
+  short_description: "Generate and edit MarkUI wireframes"
+  default_prompt: "Use $markui to create a clean MarkUI ASCII wireframe from my UI requirements."
+
+policy:
+  allow_implicit_invocation: true

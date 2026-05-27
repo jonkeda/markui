@@ -67,8 +67,10 @@ function buildBoxNode(
     nodeType = 'ContextMenu';
   }
 
+  const statusTitle = parseStatusTitle(box.title);
+
   // Check for toast (annotation marker in title)
-  if (box.title && /^[?$!ixv]\s/.test(box.title)) {
+  if (statusTitle) {
     nodeType = 'Toast';
   }
 
@@ -79,13 +81,15 @@ function buildBoxNode(
 
   const node: WidgetNode = {
     type: nodeType,
-    text: box.title,
+    text: statusTitle ? statusTitle.text : box.title,
     row: box.top,
     col: box.left,
     width: box.right - box.left + 1,
     height: box.bottom - box.top + 1,
     children: [],
     level: box.nestLevel > 0 ? box.nestLevel : undefined,
+    typeName: box.typeName || undefined,
+    annotationType: statusTitle?.type,
     scrollRight: box.scrollRight || undefined,
     scrollBottom: box.scrollBottom || undefined,
     resizeDividers: box.resizeDividers.length > 0 ? box.resizeDividers : undefined,
@@ -134,6 +138,16 @@ function buildBoxNode(
   }
 
   return node;
+}
+
+function parseStatusTitle(title: string | undefined): { type: string; text?: string } | null {
+  if (!title) return null;
+  const match = title.match(/^(?:\(([?$!ixv])\)|([?$!ixv])\s+)(.*)$/);
+  if (!match) return null;
+  return {
+    type: match[1] ?? match[2],
+    text: match[3].trim() || undefined,
+  };
 }
 
 function detectTabBar(grid: Grid, box: Box): WidgetNode | null {

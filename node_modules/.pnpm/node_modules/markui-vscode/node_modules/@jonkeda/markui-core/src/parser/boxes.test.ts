@@ -152,4 +152,44 @@ describe('detectBoxes', () => {
     expect(boxes[0].typeName).toBe('Modal');
     expect(boxes[0].title).toBe('Confirm');
   });
+
+  it('should repair a one-column right edge mismatch in a typed container', () => {
+    const grid = loadGrid([
+      '+--@Modal--- Confirm ----------------+',
+      '|                                     |',
+      '|  Delete this item?                  |',
+      '|                                     |',
+      '+-------------------------------------+',
+    ].join('\n'));
+    const { boxes } = detectBoxes(grid, 'autofix');
+    expect(boxes.length).toBe(1);
+    expect(boxes[0].right).toBe(38);
+    expect(boxes[0].typeName).toBe('Modal');
+    expect(boxes[0].title).toBe('Confirm');
+  });
+
+  it('should detect a tab bar box with a repaired right edge', () => {
+    const grid = loadGrid([
+      '+--[[Overview]]--[Details]--[Settings]--+',
+      '| Overview tab content                   |',
+      '+----------------------------------------+',
+    ].join('\n'));
+    const { boxes } = detectBoxes(grid, 'autofix');
+    expect(boxes.length).toBe(1);
+    expect(boxes[0].title).toBeUndefined();
+  });
+
+  it('should detect a nested box layout when the right border is off by one', () => {
+    const grid = loadGrid([
+      '+--- Dashboard ---------------------------+',
+      '| +--- Stats --------+ +--- Chart -------+ |',
+      '| | Users: 1,234     | | [=======...] 70%| |',
+      '| +------------------+ +-----------------+ |',
+      '+-----------------------------------------+',
+    ].join('\n'));
+    const { boxes } = detectBoxes(grid, 'autofix');
+    expect(boxes.some(box => box.title === 'Dashboard')).toBe(true);
+    expect(boxes.some(box => box.title === 'Stats')).toBe(true);
+    expect(boxes.some(box => box.title === 'Chart')).toBe(true);
+  });
 });

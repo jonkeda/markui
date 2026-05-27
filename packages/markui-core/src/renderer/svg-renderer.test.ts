@@ -98,6 +98,101 @@ describe('renderToSvg', () => {
     expect(svg).toContain('Inside');
   });
 
+  it('should render an implicit root frame around boxless UI', () => {
+    const tree = makeNode({
+      type: 'Document',
+      children: [makeNode({ type: 'Button', text: 'Submit', col: 0, width: 8 })],
+    });
+    const svg = renderToSvg(tree, theme);
+    expect(svg).toContain('data-markui="implicit-root"');
+  });
+
+  it('should not render an implicit root frame around an explicit box', () => {
+    const tree = makeNode({
+      type: 'Document',
+      children: [makeNode({ type: 'Box', text: 'Container', col: 0, width: 30, height: 5 })],
+    });
+    const svg = renderToSvg(tree, theme);
+    expect(svg).not.toContain('data-markui="implicit-root"');
+  });
+
+  it('should render list containers with frames and scrollbars', () => {
+    const vertical = renderToSvg(makeNode({
+      type: 'Document',
+      children: [makeNode({ type: 'VerticalList', text: 'Tasks', col: 0, width: 20, height: 4 })],
+    }), theme);
+    const horizontal = renderToSvg(makeNode({
+      type: 'Document',
+      children: [makeNode({ type: 'HorizontalList', text: 'Steps', col: 0, width: 20, height: 4 })],
+    }), theme);
+    const wrapped = renderToSvg(makeNode({
+      type: 'Document',
+      children: [makeNode({ type: 'WrappedList', text: 'Tags', col: 0, width: 20, height: 4 })],
+    }), theme);
+
+    expect(vertical).toContain('data-markui="VerticalList"');
+    expect(vertical).toContain('data-markui="scrollbar-right"');
+    expect(horizontal).toContain('data-markui="HorizontalList"');
+    expect(horizontal).toContain('data-markui="scrollbar-bottom"');
+    expect(wrapped).toContain('data-markui="WrappedList"');
+    expect(wrapped).toContain('data-markui="scrollbar-right"');
+    expect(wrapped).toContain('data-markui="scrollbar-bottom"');
+  });
+
+  it('should render expanded expander content in a panel', () => {
+    const tree = makeNode({
+      type: 'Document',
+      children: [makeNode({
+        type: 'Expander',
+        text: 'Advanced Settings',
+        state: 'expanded',
+        col: 0,
+        width: 24,
+        children: [makeNode({ type: 'Label', text: 'Timeout:', row: 1, col: 0, width: 8 })],
+      })],
+    });
+    const svg = renderToSvg(tree, theme);
+    expect(svg).toContain('data-markui="expander-panel"');
+  });
+
+  it('should not render a content panel for collapsed expanders', () => {
+    const tree = makeNode({
+      type: 'Document',
+      children: [makeNode({ type: 'Expander', text: 'Advanced Settings', state: 'collapsed', col: 0, width: 24 })],
+    });
+    const svg = renderToSvg(tree, theme);
+    expect(svg).not.toContain('data-markui="expander-panel"');
+  });
+
+  it('should render annotation prefixes as status icons', () => {
+    const tree = makeNode({
+      type: 'Document',
+      children: [makeNode({ type: 'Annotation', text: 'Please enter a valid email.', annotationType: 'x', col: 0, width: 30 })],
+    });
+    const svg = renderToSvg(tree, theme);
+    expect(svg).toContain('data-markui="status-icon"');
+    expect(svg).toContain('Please enter a valid email.');
+    expect(svg).not.toContain('(x)');
+  });
+
+  it('should render toast status markers as icons', () => {
+    const tree = makeNode({
+      type: 'Document',
+      children: [makeNode({
+        type: 'Toast',
+        annotationType: 'v',
+        col: 0,
+        width: 30,
+        height: 3,
+        children: [makeNode({ type: 'Label', text: 'File saved successfully', row: 1, col: 1, width: 25 })],
+      })],
+    });
+    const svg = renderToSvg(tree, theme);
+    expect(svg).toContain('data-markui="status-icon"');
+    expect(svg).toContain('File saved successfully');
+    expect(svg).not.toContain('(v)');
+  });
+
   it('should render with blueprint theme', () => {
     const blueprintTheme = getTheme('blueprint');
     const tree = makeNode({

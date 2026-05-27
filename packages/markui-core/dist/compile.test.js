@@ -235,6 +235,71 @@ function visualFixture(name) {
             (0, vitest_1.expect)(box.text).toContain('Settings');
         }
     });
+    (0, vitest_1.it)('should parse a typed container with a repaired right edge', () => {
+        const src = [
+            '+--@Modal--- Confirm ----------------+',
+            '|                                     |',
+            '|  Delete this item?                  |',
+            '|                                     |',
+            '|  [Delete]  [Cancel]                 |',
+            '|                                     |',
+            '+-------------------------------------+',
+        ].join('\n');
+        const { tree } = (0, index_1.parse)(src, { mode: 'autofix' });
+        const box = findByType(tree, 'Box');
+        (0, vitest_1.expect)(box?.text).toBe('Confirm');
+        (0, vitest_1.expect)(box?.typeName).toBe('Modal');
+        (0, vitest_1.expect)(findAllByType(tree, 'Label').map(label => label.text)).not.toContain('+--@Modal--');
+    });
+    (0, vitest_1.it)('should parse nested boxes without literal border fragments', () => {
+        const src = [
+            '+--- Dashboard ---------------------------+',
+            '| +--- Stats --------+ +--- Chart -------+ |',
+            '| | Users: 1,234     | | [=======...] 70%| |',
+            '| +------------------+ +-----------------+ |',
+            '+-----------------------------------------+',
+        ].join('\n');
+        const { tree } = (0, index_1.parse)(src, { mode: 'autofix' });
+        (0, vitest_1.expect)(tree.children.find(node => node.type === 'Box' && node.text === 'Dashboard')).toBeDefined();
+        (0, vitest_1.expect)(findAllByType(tree, 'Box').map(box => box.text)).toEqual(vitest_1.expect.arrayContaining(['Stats', 'Chart']));
+        (0, vitest_1.expect)(findAllByType(tree, 'Label').map(label => label.text)).not.toContain('+-----------------------------------------+');
+    });
+    (0, vitest_1.it)('should parse a top-border tab bar inside its box', () => {
+        const src = [
+            '+--[[Overview]]--[Details]--[Settings]--+',
+            '| Overview tab content                   |',
+            '+----------------------------------------+',
+        ].join('\n');
+        const { tree } = (0, index_1.parse)(src, { mode: 'autofix' });
+        (0, vitest_1.expect)(findByType(tree, 'Box')).toBeDefined();
+        (0, vitest_1.expect)(findByType(tree, 'TabBar')).toBeDefined();
+        (0, vitest_1.expect)(findByType(tree, 'ActiveTab')?.text).toBe('Overview');
+        (0, vitest_1.expect)(findAllByType(tree, 'Label').map(label => label.text)).not.toContain('+--');
+    });
+    (0, vitest_1.it)('should parse parenthesized status titles as toast notifications', () => {
+        const src = [
+            '+-- (v) ----------------------------+',
+            '| File saved successfully           |',
+            '+-----------------------------------+',
+        ].join('\n');
+        const { svg, tree } = (0, index_1.compile)(src);
+        const toast = findByType(tree, 'Toast');
+        (0, vitest_1.expect)(toast).toBeDefined();
+        (0, vitest_1.expect)(toast?.annotationType).toBe('v');
+        (0, vitest_1.expect)(toast?.text).toBeUndefined();
+        (0, vitest_1.expect)(svg).toContain('data-markui="status-icon"');
+        (0, vitest_1.expect)(svg).not.toContain('(v)');
+    });
+    (0, vitest_1.it)('should not treat ordinary titles starting with status letters as toasts', () => {
+        const src = [
+            '+--- Invoice ---+',
+            '| Details       |',
+            '+---------------+',
+        ].join('\n');
+        const { tree } = (0, index_1.parse)(src, { mode: 'autofix' });
+        (0, vitest_1.expect)(findByType(tree, 'Toast')).toBeUndefined();
+        (0, vitest_1.expect)(findByType(tree, 'Box')?.text).toBe('Invoice');
+    });
 });
 (0, vitest_1.describe)('visual regression fixtures', () => {
     (0, vitest_1.it)('keeps both columns in the column layout fixture', () => {

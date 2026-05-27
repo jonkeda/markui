@@ -138,7 +138,7 @@ Prefixes: `(?)` help, `($)` tooltip, `(!)` warning, `(i)` info, `(x)` error, `(v
 Named blocks in markdown enable component reuse:
 
 ````markdown
-```markui:user-card
+```markui:@user-card
 *-----------------------*
 | !==IMG==!  User Name  |
 |            Role       |

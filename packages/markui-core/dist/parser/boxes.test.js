@@ -140,5 +140,42 @@ const grid_1 = require("./grid");
         (0, vitest_1.expect)(boxes[0].typeName).toBe('Modal');
         (0, vitest_1.expect)(boxes[0].title).toBe('Confirm');
     });
+    (0, vitest_1.it)('should repair a one-column right edge mismatch in a typed container', () => {
+        const grid = (0, grid_1.loadGrid)([
+            '+--@Modal--- Confirm ----------------+',
+            '|                                     |',
+            '|  Delete this item?                  |',
+            '|                                     |',
+            '+-------------------------------------+',
+        ].join('\n'));
+        const { boxes } = (0, boxes_1.detectBoxes)(grid, 'autofix');
+        (0, vitest_1.expect)(boxes.length).toBe(1);
+        (0, vitest_1.expect)(boxes[0].right).toBe(38);
+        (0, vitest_1.expect)(boxes[0].typeName).toBe('Modal');
+        (0, vitest_1.expect)(boxes[0].title).toBe('Confirm');
+    });
+    (0, vitest_1.it)('should detect a tab bar box with a repaired right edge', () => {
+        const grid = (0, grid_1.loadGrid)([
+            '+--[[Overview]]--[Details]--[Settings]--+',
+            '| Overview tab content                   |',
+            '+----------------------------------------+',
+        ].join('\n'));
+        const { boxes } = (0, boxes_1.detectBoxes)(grid, 'autofix');
+        (0, vitest_1.expect)(boxes.length).toBe(1);
+        (0, vitest_1.expect)(boxes[0].title).toBeUndefined();
+    });
+    (0, vitest_1.it)('should detect a nested box layout when the right border is off by one', () => {
+        const grid = (0, grid_1.loadGrid)([
+            '+--- Dashboard ---------------------------+',
+            '| +--- Stats --------+ +--- Chart -------+ |',
+            '| | Users: 1,234     | | [=======...] 70%| |',
+            '| +------------------+ +-----------------+ |',
+            '+-----------------------------------------+',
+        ].join('\n'));
+        const { boxes } = (0, boxes_1.detectBoxes)(grid, 'autofix');
+        (0, vitest_1.expect)(boxes.some(box => box.title === 'Dashboard')).toBe(true);
+        (0, vitest_1.expect)(boxes.some(box => box.title === 'Stats')).toBe(true);
+        (0, vitest_1.expect)(boxes.some(box => box.title === 'Chart')).toBe(true);
+    });
 });
 //# sourceMappingURL=boxes.test.js.map

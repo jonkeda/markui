@@ -389,7 +389,6 @@ Components:
 - Titled box
 - Open-right box
 - Boxless UI
-- File drop zone
 - Vertical list container
 - Horizontal list container
 - Wrapped list container
@@ -400,7 +399,6 @@ Required examples:
 - Titled box
 - Open-right box with no trailing right `+`
 - Boxless login form
-- Dashed drop zone
 - `v--- ... ---v`
 - `>--- ... --->`
 - `w--- ... ---w`
@@ -604,7 +602,7 @@ Components:
 
 Required examples:
 
-- `markui:user-card`
+- `markui:@user-card`
 - `@user-card`
 - `<@datepicker>`
 - `{@slot}`

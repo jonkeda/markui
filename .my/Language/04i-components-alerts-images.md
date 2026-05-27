@@ -279,7 +279,7 @@ Example:
 +-------------------+
 ```
 
-```markui:user-card
+```markui:@user-card
 +--- User ----------+
 | !==IMG==!         |
 | <Full Name_____>  |

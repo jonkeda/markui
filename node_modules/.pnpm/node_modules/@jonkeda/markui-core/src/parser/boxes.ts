@@ -76,7 +76,7 @@ function extractTitle(grid: Grid, box: Box): void {
     if (typeMatch) {
       box.typeName = typeMatch[1];
       const afterType = rawTitleArea.slice(rawTitleArea.indexOf(typeMatch[0]) + typeMatch[0].length);
-      const trailingTitle = afterType.replace(/^[-#.\s]+/, '').replace(/[-#.\s]+$/, '').trim();
+      const trailingTitle = afterType.replace(/^[-#.\s]+/, '').replace(/[-#.\s+]+$/, '').trim();
       box.title = trailingTitle || title.replace(/@\w+/, '').trim() || undefined;
     }
   }
@@ -122,6 +122,38 @@ function detectTabsOnBorder(grid: Grid, box: Box): { tabs: { text: string; activ
   }
 
   return tabs.length > 0 ? { tabs } : null;
+}
+
+function hasNearbyCorner(grid: Grid, r: number, c: number, tolerance = 1): boolean {
+  for (let dc = -tolerance; dc <= tolerance; dc++) {
+    const cc = c + dc;
+    if (cc >= 0 && cc < grid.width && isCorner(grid.rows[r][cc])) return true;
+  }
+  return false;
+}
+
+function hasVerticalBorder(grid: Grid, top: number, bottom: number, c: number): boolean {
+  if (c < 0 || c >= grid.width) return false;
+  for (let r = top + 1; r < bottom; r++) {
+    if (!isVBorder(grid.rows[r][c])) return false;
+  }
+  return true;
+}
+
+function findRightBorderColumn(grid: Grid, top: number, bottom: number, topRight: number): number | null {
+  for (let delta = 0; delta <= 2; delta++) {
+    const candidates = delta === 0 ? [topRight] : [topRight + delta, topRight - delta];
+    for (const c of candidates) {
+      if (
+        hasVerticalBorder(grid, top, bottom, c) &&
+        hasNearbyCorner(grid, top, c) &&
+        hasNearbyCorner(grid, bottom, c)
+      ) {
+        return c;
+      }
+    }
+  }
+  return null;
 }
 
 function tryBox(grid: Grid, r: number, c: number): Box | null {
@@ -192,17 +224,14 @@ function tryBox(grid: Grid, r: number, c: number): Box | null {
     }
     if (r2 === -1) continue;
 
+    const repairedRight = findRightBorderColumn(grid, r, r2, c2);
+
     // Check bottom-right corner
-    let hasRightBorder = true;
-    const brCh = grid.rows[r2][c2];
-    if (!isCorner(brCh)) {
-      // Try open-right box: verify left border is valid, no right border needed
-      hasRightBorder = false;
-      // Still need to verify bottom border from c to some end
-    }
+    let hasRightBorder = repairedRight !== null;
+    let right = repairedRight ?? c2;
 
     // Verify bottom border has at least one dash
-    const bottomEnd = hasRightBorder ? c2 : Math.min(c2, grid.width - 1);
+    const bottomEnd = hasRightBorder ? right : Math.min(c2, grid.width - 1);
     let bottomHasDash = false;
     for (let ci = c + 1; ci < bottomEnd; ci++) {
       const ch = grid.rows[r2][ci];
@@ -212,22 +241,6 @@ function tryBox(grid: Grid, r: number, c: number): Box | null {
     }
     if (!bottomHasDash && hasRightBorder) continue;
     if (!bottomHasDash && !hasRightBorder) continue;
-
-    // Verify right border if present
-    if (hasRightBorder) {
-      let rightOk = true;
-      for (let ri = r + 1; ri < r2; ri++) {
-        const ch = grid.rows[ri][c2];
-        if (!isVBorder(ch)) {
-          rightOk = false;
-          break;
-        }
-      }
-      if (!rightOk) {
-        // Try open-right
-        hasRightBorder = false;
-      }
-    }
 
     // Verify left border (relaxed for nested prefix boxes)
     let leftOk = true;
@@ -246,7 +259,7 @@ function tryBox(grid: Grid, r: number, c: number): Box | null {
     if (!hasRightBorder && isCorner(grid.rows[r][c2])) continue;
 
     // Detect border style
-    const topDashed = isDashedBorder(grid, r, c + 1, c2 - 1);
+    const topDashed = isDashedBorder(grid, r, c + 1, Math.min(c2, right) - 1);
     let borderStyle: BorderStyle = topDashed ? 'dashed' : 'solid';
 
     // Detect scroll indicators
@@ -254,13 +267,13 @@ function tryBox(grid: Grid, r: number, c: number): Box | null {
     let scrollBottom = false;
     if (hasRightBorder) {
       for (let ri = r + 1; ri < r2; ri++) {
-        if (grid.rows[ri][c2] === '#') {
+        if (grid.rows[ri][right] === '#') {
           scrollRight = true;
           break;
         }
       }
     }
-    for (let ci = c + 1; ci < (hasRightBorder ? c2 : grid.width); ci++) {
+    for (let ci = c + 1; ci < (hasRightBorder ? right : grid.width); ci++) {
       if (grid.rows[r2][ci] === '#') {
         scrollBottom = true;
         break;
@@ -270,7 +283,7 @@ function tryBox(grid: Grid, r: number, c: number): Box | null {
     // Detect column dividers and resize dividers within the box
     const columnDividers: number[] = [];
     const resizeDividers: number[] = [];
-    for (let ci = c + 1; ci < c2; ci++) {
+    for (let ci = c + 1; ci < right; ci++) {
       const topCh = grid.rows[r][ci];
       const botCh = grid.rows[r2][ci];
       if (isCorner(topCh) && isCorner(botCh)) {
@@ -300,7 +313,7 @@ function tryBox(grid: Grid, r: number, c: number): Box | null {
       top: r,
       left: c,
       bottom: r2,
-      right: hasRightBorder ? c2 : c2,
+      right,
       cornerChar,
       borderStyle,
       hasRightBorder,
@@ -314,6 +327,9 @@ function tryBox(grid: Grid, r: number, c: number): Box | null {
     };
 
     extractTitle(grid, box);
+    if (detectTabsOnBorder(grid, box)) {
+      box.title = undefined;
+    }
 
     return box;
   }

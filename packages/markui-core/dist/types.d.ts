@@ -37,6 +37,7 @@ export interface WidgetNode {
     children: WidgetNode[];
     iconIndex?: number;
     level?: number;
+    typeName?: string;
     annotationType?: string;
     percentage?: number;
     numerator?: number;

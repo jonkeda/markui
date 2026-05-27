@@ -32,6 +32,23 @@ describe('multi-line merge', () => {
     expect(ta).toBeDefined();
   });
 
+  it('should bind a label to an entire textarea run', () => {
+    const src = [
+      'Description:',
+      '<                        >',
+      '<                        >',
+      '<                        >',
+    ].join('\n');
+    const { tree } = parse(src, { mode: 'strict' });
+    const ff = findByType(tree, 'FormField');
+    const ta = findByType(tree, 'Textarea');
+    const inputs = findAllByType(tree, 'TextInput');
+
+    expect(ff).toBeDefined();
+    expect(ta).toBeDefined();
+    expect(inputs).toHaveLength(0);
+  });
+
   it('should parse a table with header and data rows', () => {
     const src = [
       '| Name  | Age |',
@@ -66,5 +83,41 @@ describe('multi-line merge', () => {
     // Should contain annotation as child
     const ann = findByType(tree, 'Annotation');
     expect(ann).toBeDefined();
+  });
+
+  it('should bind expanded dropdown options to a labeled dropdown', () => {
+    const src = [
+      'Fruit:',
+      '<Apple ^>',
+      '  Apple',
+      '  Banana',
+      '  Orange',
+      '->',
+    ].join('\n');
+    const { tree } = parse(src, { mode: 'strict' });
+    const ff = findByType(tree, 'FormField');
+    const dropdown = findByType(tree, 'Dropdown');
+    const options = findAllByType(tree, 'DropdownOption');
+    const labels = findAllByType(tree, 'Label').map(label => label.text);
+
+    expect(ff).toBeDefined();
+    expect(dropdown?.state).toBe('expanded');
+    expect(options.map(option => option.text)).toEqual(['Apple', 'Banana', 'Orange']);
+    expect(labels).not.toContain('->');
+  });
+
+  it('should bind multi-select dropdown options to a labeled dropdown', () => {
+    const src = [
+      'Assignees:',
+      '<Team ^>',
+      '  [x] Alice',
+      '  [ ] Bob',
+      '->',
+    ].join('\n');
+    const { tree } = parse(src, { mode: 'strict' });
+    const options = findAllByType(tree, 'DropdownOption');
+
+    expect(options.map(option => option.text)).toEqual(['Alice', 'Bob']);
+    expect(options.map(option => option.state)).toEqual(['checked', 'unchecked']);
   });
 });

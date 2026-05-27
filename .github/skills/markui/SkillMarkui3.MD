@@ -19,7 +19,7 @@ This skill is self-contained. It does not require any specific repository, compa
 ## Core Rules
 
 1. `.markui` files contain one screen and no prose.
-2. Markdown files can contain many screens using ` ```markui ` or named ` ```markui:component-name ` fences.
+2. Markdown files can contain many screens using ` ```markui ` or named ` ```markui:@component-name ` fences.
 3. Visible wireframes contain UI only. Do not render requirements, business rules, implementation notes, or prompt instructions as UI text.
 4. Text inside inputs is example data, not placeholder copy.
 5. Widgets on the same line imply horizontal layout. Widgets on separate lines imply vertical layout.
@@ -33,7 +33,7 @@ This skill is self-contained. It does not require any specific repository, compa
 - Use named blocks to define reusable components:
 
 ````
-```markui:user-card
+```markui:@user-card
 +--- User ----------+
 | !==IMG==!         |
 | <Jane Doe______>  |
@@ -239,7 +239,7 @@ w----------------------------w
 
 Corner summary: `+` structural box, `v` vertical list, `>` horizontal list, `w` wrapped list.
 
-### Scroll, Splitters, and Drop Zones
+### Scroll and Splitters
 
 ```markui
 +--- Messages -------------------+
@@ -253,17 +253,6 @@ Corner summary: `+` structural box, `v` vertical list, `>` horizontal list, `w` 
 | Sidebar  . Main Content         |
 | [Nav 1]  . Text                 |
 +----------.----------------------+
-```
-
-Dashed borders indicate file drop zones:
-
-```markui
-+- - - - - - - - - - - -+
-|                        |
-|   Drag files here      |
-|   or [Browse]          |
-|                        |
-+- - - - - - - - - - - -+
 ```
 
 ## Navigation

@@ -32,6 +32,7 @@ function renderNode(
 
   switch (node.type) {
     case 'Document':
+      renderDocumentFrame(node, t, out, baseX, baseY, cw, lh);
       for (const child of node.children) renderNode(child, t, out, baseX, baseY, cw, lh);
       break;
 
@@ -43,7 +44,7 @@ function renderNode(
     case 'VerticalList':
     case 'HorizontalList':
     case 'WrappedList':
-      renderBox(node, t, out, baseX, baseY, cw, lh, true);
+      renderListContainer(node, t, out, baseX, baseY, cw, lh);
       break;
 
     case 'Toast':
@@ -224,6 +225,36 @@ function renderNode(
 }
 
 // ---------------------------------------------------------------------------
+// Document
+// ---------------------------------------------------------------------------
+
+function renderDocumentFrame(
+  node: WidgetNode, t: ThemeColors, out: string[],
+  baseX: number, baseY: number, cw: number, lh: number
+): void {
+  if (node.children.length === 0) return;
+
+  const explicitContainerTypes = new Set([
+    'Box', 'ContextMenu', 'VerticalList', 'HorizontalList', 'WrappedList',
+    'Toast', 'Accordion', 'Expander',
+  ]);
+  const needsFrame = node.children.some(child => !explicitContainerTypes.has(child.type));
+  if (!needsFrame) return;
+
+  const bounds = getNodeCollectionBounds(node.children);
+  const pad = 8;
+  const x = Math.max(0, baseX + bounds.left * cw - pad);
+  const y = Math.max(0, baseY + bounds.top * lh - pad);
+  const w = Math.max((bounds.right - bounds.left) * cw + pad * 2, 120);
+  const h = Math.max((bounds.bottom - bounds.top) * lh + pad * 2, lh * 3);
+
+  out.push(
+    `<rect data-markui="implicit-root" x="${x}" y="${y}" width="${w}" height="${h}" rx="3" ` +
+    `fill="${t.background}" stroke="${t.border}" stroke-width="1.5"/>`
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Box / Card
 // ---------------------------------------------------------------------------
 
@@ -279,24 +310,8 @@ function renderBox(
   }
 
   // Scrollbar indicators
-  if (node.scrollRight) {
-    const sbw = 6;
-    const sbx = x + w - sbw - 2;
-    const sby = y + lh + 2;
-    const sbh = h - lh - 6;
-    out.push(`<rect x="${sbx}" y="${sby}" width="${sbw}" height="${sbh}" rx="3" fill="${t.scrollbarBg}"/>`);
-    const thumbH = Math.max(sbh * 0.35, 12);
-    out.push(`<rect x="${sbx}" y="${sby}" width="${sbw}" height="${thumbH}" rx="3" fill="${t.border}" opacity="0.5"/>`);
-  }
-  if (node.scrollBottom) {
-    const sbh = 6;
-    const sbx = x + 4;
-    const sby = y + h - sbh - 2;
-    const sbw = w - 10;
-    out.push(`<rect x="${sbx}" y="${sby}" width="${sbw}" height="${sbh}" rx="3" fill="${t.scrollbarBg}"/>`);
-    const thumbW = Math.max(sbw * 0.35, 12);
-    out.push(`<rect x="${sbx}" y="${sby}" width="${thumbW}" height="${sbh}" rx="3" fill="${t.border}" opacity="0.5"/>`);
-  }
+  if (node.scrollRight) renderVerticalScrollbar(out, t, x, y, w, h, lh);
+  if (node.scrollBottom) renderHorizontalScrollbar(out, t, x, y, w, h);
 
   // Resize divider grip handles
   if (node.resizeDividers) {
@@ -314,6 +329,91 @@ function renderBox(
 
   out.push('</g>');
 }
+
+function renderListContainer(
+  node: WidgetNode, t: ThemeColors, out: string[],
+  baseX: number, baseY: number, cw: number, lh: number
+): void {
+  const x = baseX + node.col * cw;
+  const y = baseY + node.row * lh;
+  const w = node.width * cw;
+  const h = (node.height ?? 3) * lh;
+  const showRightScrollbar = node.scrollRight || node.type === 'VerticalList' || node.type === 'WrappedList';
+  const showBottomScrollbar = node.scrollBottom || node.type === 'HorizontalList' || node.type === 'WrappedList';
+
+  out.push(`<g data-markui="${node.type}">`);
+  out.push(
+    `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="3" ` +
+    `fill="${t.background}" stroke="${t.border}" stroke-width="1.5"/>`
+  );
+
+  if (node.text) {
+    out.push(`<rect x="${x + 1}" y="${y + 1}" width="${Math.max(w - 2, 0)}" height="${lh - 2}" fill="${t.inactiveTabBg}" opacity="0.45"/>`);
+    renderListGlyph(node, t, out, x + 8, y + 4);
+    out.push(
+      `<text x="${x + 30}" y="${y + lh * 0.7}" class="mu-text" font-weight="600">${esc(node.text)}</text>`
+    );
+  } else {
+    renderListGlyph(node, t, out, x + 8, y + 4);
+  }
+
+  for (const child of node.children) {
+    renderNode(child, t, out, baseX, baseY, cw, lh);
+  }
+
+  if (showRightScrollbar) renderVerticalScrollbar(out, t, x, y, w, h, lh);
+  if (showBottomScrollbar) renderHorizontalScrollbar(out, t, x, y, w, h);
+
+  out.push('</g>');
+}
+
+function renderListGlyph(
+  node: WidgetNode, t: ThemeColors, out: string[],
+  x: number, y: number
+): void {
+  if (node.type === 'HorizontalList') {
+    out.push(`<line x1="${x}" y1="${y + 5}" x2="${x + 16}" y2="${y + 5}" stroke="${t.border}" stroke-width="1.5"/>`);
+    out.push(`<polyline points="${x + 12},${y + 1} ${x + 16},${y + 5} ${x + 12},${y + 9}" fill="none" stroke="${t.border}" stroke-width="1.5"/>`);
+    return;
+  }
+  if (node.type === 'WrappedList') {
+    out.push(`<path d="M${x},${y + 3} H${x + 14} Q${x + 18},${y + 3} ${x + 18},${y + 7} Q${x + 18},${y + 11} ${x + 14},${y + 11} H${x + 4}" fill="none" stroke="${t.border}" stroke-width="1.5"/>`);
+    out.push(`<polyline points="${x + 7},${y + 8} ${x + 4},${y + 11} ${x + 7},${y + 14}" fill="none" stroke="${t.border}" stroke-width="1.5"/>`);
+    return;
+  }
+
+  for (let i = 0; i < 3; i++) {
+    const cy = y + 2 + i * 5;
+    out.push(`<circle cx="${x + 2}" cy="${cy}" r="1.3" fill="${t.border}"/>`);
+    out.push(`<line x1="${x + 6}" y1="${cy}" x2="${x + 18}" y2="${cy}" stroke="${t.border}" stroke-width="1.5"/>`);
+  }
+}
+
+function renderVerticalScrollbar(
+  out: string[], t: ThemeColors,
+  x: number, y: number, w: number, h: number, lh: number
+): void {
+  const sbw = 6;
+  const sbx = x + w - sbw - 2;
+  const sby = y + lh + 2;
+  const sbh = Math.max(h - lh - 8, 12);
+  out.push(`<rect data-markui="scrollbar-right" x="${sbx}" y="${sby}" width="${sbw}" height="${sbh}" rx="3" fill="${t.scrollbarBg}"/>`);
+  const thumbH = Math.max(sbh * 0.35, 12);
+  out.push(`<rect x="${sbx}" y="${sby}" width="${sbw}" height="${thumbH}" rx="3" fill="${t.border}" opacity="0.5"/>`);
+}
+
+function renderHorizontalScrollbar(
+  out: string[], t: ThemeColors,
+  x: number, y: number, w: number, h: number
+): void {
+  const sbh = 6;
+  const sbx = x + 4;
+  const sby = y + h - sbh - 2;
+  const sbw = Math.max(w - 10, 12);
+  out.push(`<rect data-markui="scrollbar-bottom" x="${sbx}" y="${sby}" width="${sbw}" height="${sbh}" rx="3" fill="${t.scrollbarBg}"/>`);
+  const thumbW = Math.max(sbw * 0.35, 12);
+  out.push(`<rect x="${sbx}" y="${sby}" width="${thumbW}" height="${sbh}" rx="3" fill="${t.border}" opacity="0.5"/>`);
+}
 // ---------------------------------------------------------------------------
 
 function renderToast(
@@ -322,11 +422,18 @@ function renderToast(
 ): void {
   const w = node.width * cw;
   const h = (node.height ?? 2) * lh;
+  const color = annotationColor(node.annotationType, t);
+  const message = node.text || node.children.map(child => child.text).filter(Boolean).join(' ');
+
   out.push(`<g>`);
   out.push(`<rect x="${x + 2}" y="${y + 2}" width="${w}" height="${h}" rx="6" fill="rgba(0,0,0,0.1)"/>`);
   out.push(`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${t.tooltipBg}" stroke="${t.border}"/>`);
-  if (node.text) {
-    out.push(`<text x="${x + 8}" y="${y + h / 2 + 4}" fill="${t.tooltipFg}" font-family="${esc(t.fontFamily)}" font-size="${t.fontSize}px">${esc(node.text)}</text>`);
+  if (node.annotationType) {
+    renderStatusIcon(node.annotationType, color, t.tooltipFg, out, x + 10, y + h / 2 - 7);
+  }
+  if (message) {
+    const textX = node.annotationType ? x + 34 : x + 8;
+    out.push(`<text x="${textX}" y="${y + h / 2 + 4}" fill="${t.tooltipFg}" font-family="${esc(t.fontFamily)}" font-size="${t.fontSize}px">${esc(message)}</text>`);
   }
   out.push('</g>');
 }
@@ -774,6 +881,13 @@ function renderAnnotation(
   node: WidgetNode, t: ThemeColors, out: string[],
   x: number, y: number, cw: number, lh: number
 ): void {
+  const color = annotationColor(node.annotationType, t);
+  renderStatusIcon(node.annotationType ?? '?', color, t.background, out, x, y + 2);
+
+  out.push(`<text x="${x + 22}" y="${y + lh * 0.7}" fill="${color}" font-family="${esc(t.fontFamily)}" font-size="${t.fontSize}px">${esc(node.text ?? '')}</text>`);
+}
+
+function annotationColor(type: string | undefined, t: ThemeColors): string {
   const typeColorMap: Record<string, string> = {
     '?': t.helpColor,
     '$': t.warningColor,
@@ -782,9 +896,35 @@ function renderAnnotation(
     'x': t.errorColor,
     'v': t.successColor,
   };
-  const color = typeColorMap[node.annotationType ?? ''] ?? t.foreground;
+  return typeColorMap[type ?? ''] ?? t.foreground;
+}
 
-  out.push(`<text x="${x}" y="${y + lh * 0.7}" fill="${color}" font-family="${esc(t.fontFamily)}" font-size="${t.fontSize}px">(${node.annotationType ?? '?'}) ${esc(node.text ?? '')}</text>`);
+function renderStatusIcon(
+  type: string,
+  color: string,
+  foreground: string,
+  out: string[],
+  x: number,
+  y: number
+): void {
+  const s = 14;
+  const cx = x + s / 2;
+  const cy = y + s / 2;
+  out.push(`<circle data-markui="status-icon" cx="${cx}" cy="${cy}" r="${s / 2}" fill="${color}"/>`);
+
+  if (type === 'v') {
+    out.push(`<polyline points="${x + 3.5},${y + 7.2} ${x + 6},${y + 9.7} ${x + 10.8},${y + 4.4}" fill="none" stroke="${foreground}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>`);
+    return;
+  }
+
+  if (type === 'x') {
+    out.push(`<line x1="${x + 4.2}" y1="${y + 4.2}" x2="${x + 9.8}" y2="${y + 9.8}" stroke="${foreground}" stroke-width="2" stroke-linecap="round"/>`);
+    out.push(`<line x1="${x + 9.8}" y1="${y + 4.2}" x2="${x + 4.2}" y2="${y + 9.8}" stroke="${foreground}" stroke-width="2" stroke-linecap="round"/>`);
+    return;
+  }
+
+  const glyph = type === '!' ? '!' : type === 'i' ? 'i' : type === '$' ? '$' : '?';
+  out.push(`<text x="${cx}" y="${cy + 4}" text-anchor="middle" fill="${foreground}" font-family="Arial, sans-serif" font-size="10px" font-weight="700">${glyph}</text>`);
 }
 
 // ---------------------------------------------------------------------------
@@ -797,6 +937,12 @@ function renderAccordion(
   baseX: number, baseY: number
 ): void {
   if (node.type === 'Accordion') {
+    const bounds = getNodeCollectionBounds(node.children.length > 0 ? node.children : [node]);
+    const ax = baseX + bounds.left * cw - 4;
+    const ay = baseY + bounds.top * lh - 2;
+    const aw = Math.max((bounds.right - bounds.left) * cw + 8, 120);
+    const ah = Math.max((bounds.bottom - bounds.top) * lh + 8, lh + 8);
+    out.push(`<rect data-markui="accordion-frame" x="${Math.max(0, ax)}" y="${Math.max(0, ay)}" width="${aw}" height="${ah}" rx="4" fill="none" stroke="${t.border}" opacity="0.55"/>`);
     for (const child of node.children) {
       renderNode(child, t, out, baseX, baseY, cw, lh);
     }
@@ -814,6 +960,17 @@ function renderAccordion(
   out.push(`<text x="${x + 20}" y="${y + h / 2 + 5}" fill="${t.foreground}" font-family="${esc(t.fontFamily)}" font-size="${t.fontSize}px" font-weight="600">${esc(node.text ?? '')}</text>`);
 
   if (expanded && node.children.length > 0) {
+    const bounds = getNodeCollectionBounds(node.children);
+    const panelX = x;
+    const panelY = baseY + bounds.top * lh + 1;
+    const panelW = Math.max(w, (bounds.right - node.col) * cw + 8);
+    const panelH = Math.max((bounds.bottom - bounds.top) * lh + 8, lh + 8);
+
+    out.push(
+      `<rect data-markui="expander-panel" x="${panelX}" y="${panelY}" width="${panelW}" height="${panelH}" rx="3" ` +
+      `fill="${t.background}" stroke="${t.border}" stroke-width="1"/>`
+    );
+
     for (const child of node.children) {
       renderNode(child, t, out, baseX, baseY, cw, lh);
     }
@@ -981,6 +1138,44 @@ function renderTable(
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+function getNodeCollectionBounds(nodes: WidgetNode[]): { left: number; top: number; right: number; bottom: number } {
+  let left = Number.POSITIVE_INFINITY;
+  let top = Number.POSITIVE_INFINITY;
+  let right = 0;
+  let bottom = 0;
+
+  for (const node of nodes) {
+    const bounds = getNodeBounds(node);
+    left = Math.min(left, bounds.left);
+    top = Math.min(top, bounds.top);
+    right = Math.max(right, bounds.right);
+    bottom = Math.max(bottom, bounds.bottom);
+  }
+
+  if (!Number.isFinite(left) || !Number.isFinite(top)) {
+    return { left: 0, top: 0, right: 0, bottom: 0 };
+  }
+
+  return { left, top, right, bottom };
+}
+
+function getNodeBounds(node: WidgetNode): { left: number; top: number; right: number; bottom: number } {
+  let left = node.col;
+  let top = node.row;
+  let right = node.col + Math.max(node.width ?? 1, 1);
+  let bottom = node.row + Math.max(node.height ?? 1, 1);
+
+  for (const child of node.children) {
+    const bounds = getNodeBounds(child);
+    left = Math.min(left, bounds.left);
+    top = Math.min(top, bounds.top);
+    right = Math.max(right, bounds.right);
+    bottom = Math.max(bottom, bounds.bottom);
+  }
+
+  return { left, top, right, bottom };
+}
 
 function esc(str: string): string {
   return str

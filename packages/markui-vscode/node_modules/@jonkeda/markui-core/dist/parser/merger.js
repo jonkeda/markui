@@ -119,9 +119,16 @@ function tryMergeTable(lines, startIdx, out) {
 // Textarea: consecutive TextInput lines of similar width
 // ---------------------------------------------------------------------------
 function tryMergeTextarea(lines, startIdx, out) {
+    const textarea = buildTextarea(lines, startIdx);
+    if (!textarea)
+        return 0;
+    out.push(textarea.node);
+    return textarea.consumed;
+}
+function buildTextarea(lines, startIdx) {
     const first = lines[startIdx];
     if (first.length !== 1 || first[0].type !== 'TextInput')
-        return 0;
+        return null;
     let end = startIdx + 1;
     const firstWidth = first[0].end - first[0].start;
     while (end < lines.length) {
@@ -134,28 +141,37 @@ function tryMergeTextarea(lines, startIdx, out) {
         end++;
     }
     if (end - startIdx < 2)
-        return 0;
+        return null;
     const allLines = lines.slice(startIdx, end).map(l => l[0]);
     const combinedText = allLines.map(t => t.value || t.text).join('\n');
-    out.push({
-        type: 'Textarea',
-        text: combinedText,
-        value: combinedText,
-        row: allLines[0].row ?? 0,
-        col: allLines[0].start,
-        width: firstWidth,
-        height: end - startIdx,
-        children: [],
-    });
-    return end - startIdx;
+    return {
+        node: {
+            type: 'Textarea',
+            text: combinedText,
+            value: combinedText,
+            row: allLines[0].row ?? 0,
+            col: allLines[0].start,
+            width: firstWidth,
+            height: end - startIdx,
+            children: [],
+        },
+        consumed: end - startIdx,
+    };
 }
 // ---------------------------------------------------------------------------
 // Expanded Dropdown: <text ^> followed by option lines
 // ---------------------------------------------------------------------------
 function tryMergeExpandedDropdown(lines, startIdx, out) {
+    const dropdown = buildExpandedDropdown(lines, startIdx);
+    if (!dropdown)
+        return 0;
+    out.push(dropdown.node);
+    return dropdown.consumed;
+}
+function buildExpandedDropdown(lines, startIdx) {
     const first = lines[startIdx];
     if (first.length !== 1 || first[0].type !== 'Dropdown' || first[0].state !== 'expanded')
-        return 0;
+        return null;
     let end = startIdx + 1;
     const options = [];
     while (end < lines.length) {
@@ -168,7 +184,7 @@ function tryMergeExpandedDropdown(lines, startIdx, out) {
         const firstTok = line[0];
         if (firstTok.type === 'Checkbox') {
             // Multi-select option
-            const label = line.length > 1 ? line.slice(1).map(t => t.text).join(' ') : '';
+            const label = line.length > 1 ? line.slice(1).map(t => t.text).join(' ') : firstTok.text ?? '';
             options.push({
                 type: 'DropdownOption',
                 text: label,
@@ -201,17 +217,19 @@ function tryMergeExpandedDropdown(lines, startIdx, out) {
         break;
     }
     if (options.length === 0)
-        return 0;
-    out.push({
-        type: 'Dropdown',
-        text: first[0].text,
-        state: 'expanded',
-        row: first[0].row ?? 0,
-        col: first[0].start,
-        width: first[0].end - first[0].start,
-        children: options,
-    });
-    return end - startIdx;
+        return null;
+    return {
+        node: {
+            type: 'Dropdown',
+            text: first[0].text,
+            state: 'expanded',
+            row: first[0].row ?? 0,
+            col: first[0].start,
+            width: first[0].end - first[0].start,
+            children: options,
+        },
+        consumed: end - startIdx,
+    };
 }
 // ---------------------------------------------------------------------------
 // Accordion: consecutive [Header v]/[Header ^] patterns
@@ -365,15 +383,30 @@ function tryMergeFormField(lines, startIdx, out) {
     if (!inputTypes.includes(inputType))
         return 0;
     const labelNode = tokenToNode(labelLine[0]);
-    const inputNode = tokenToNode(inputLine[0]);
-    const children = [labelNode, inputNode];
+    let inputNode;
     let consumed = 2;
+    const textarea = buildTextarea(lines, startIdx + 1);
+    if (textarea) {
+        inputNode = textarea.node;
+        consumed = 1 + textarea.consumed;
+    }
+    else {
+        const expandedDropdown = buildExpandedDropdown(lines, startIdx + 1);
+        if (expandedDropdown) {
+            inputNode = expandedDropdown.node;
+            consumed = 1 + expandedDropdown.consumed;
+        }
+        else {
+            inputNode = tokenToNode(inputLine[0]);
+        }
+    }
+    const children = [labelNode, inputNode];
     // Check for annotation on next line
-    if (startIdx + 2 < lines.length) {
-        const annoLine = lines[startIdx + 2];
+    if (startIdx + consumed < lines.length) {
+        const annoLine = lines[startIdx + consumed];
         if (annoLine.length === 1 && annoLine[0].type === 'Annotation') {
             children.push(tokenToNode(annoLine[0]));
-            consumed = 3;
+            consumed++;
         }
     }
     out.push({

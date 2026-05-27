@@ -12,7 +12,7 @@ This document supersedes the reference role of `06-markui-widget-reference.md` a
 
 1. `.markui` files contain one screen and no prose.
 2. Markdown files can contain many `markui` fenced blocks.
-3. Named Markdown fences such as ` ```markui:user-card ` define reusable components.
+3. Named Markdown fences such as ` ```markui:@user-card ` define reusable components.
 4. Visible wireframes contain UI only, not requirements or implementation notes.
 5. Text inside inputs is example data, not placeholder copy.
 6. Widgets on the same line imply horizontal layout. Separate lines imply vertical layout.

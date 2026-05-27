@@ -249,6 +249,77 @@ describe('parse - complex scenarios', () => {
       expect(box.text).toContain('Settings');
     }
   });
+
+  it('should parse a typed container with a repaired right edge', () => {
+    const src = [
+      '+--@Modal--- Confirm ----------------+',
+      '|                                     |',
+      '|  Delete this item?                  |',
+      '|                                     |',
+      '|  [Delete]  [Cancel]                 |',
+      '|                                     |',
+      '+-------------------------------------+',
+    ].join('\n');
+    const { tree } = parse(src, { mode: 'autofix' });
+    const box = findByType(tree, 'Box');
+    expect(box?.text).toBe('Confirm');
+    expect(box?.typeName).toBe('Modal');
+    expect(findAllByType(tree, 'Label').map(label => label.text)).not.toContain('+--@Modal--');
+  });
+
+  it('should parse nested boxes without literal border fragments', () => {
+    const src = [
+      '+--- Dashboard ---------------------------+',
+      '| +--- Stats --------+ +--- Chart -------+ |',
+      '| | Users: 1,234     | | [=======...] 70%| |',
+      '| +------------------+ +-----------------+ |',
+      '+-----------------------------------------+',
+    ].join('\n');
+    const { tree } = parse(src, { mode: 'autofix' });
+    expect(tree.children.find(node => node.type === 'Box' && node.text === 'Dashboard')).toBeDefined();
+    expect(findAllByType(tree, 'Box').map(box => box.text)).toEqual(expect.arrayContaining(['Stats', 'Chart']));
+    expect(findAllByType(tree, 'Label').map(label => label.text)).not.toContain('+-----------------------------------------+');
+  });
+
+  it('should parse a top-border tab bar inside its box', () => {
+    const src = [
+      '+--[[Overview]]--[Details]--[Settings]--+',
+      '| Overview tab content                   |',
+      '+----------------------------------------+',
+    ].join('\n');
+    const { tree } = parse(src, { mode: 'autofix' });
+    expect(findByType(tree, 'Box')).toBeDefined();
+    expect(findByType(tree, 'TabBar')).toBeDefined();
+    expect(findByType(tree, 'ActiveTab')?.text).toBe('Overview');
+    expect(findAllByType(tree, 'Label').map(label => label.text)).not.toContain('+--');
+  });
+
+  it('should parse parenthesized status titles as toast notifications', () => {
+    const src = [
+      '+-- (v) ----------------------------+',
+      '| File saved successfully           |',
+      '+-----------------------------------+',
+    ].join('\n');
+    const { svg, tree } = compile(src);
+    const toast = findByType(tree, 'Toast');
+
+    expect(toast).toBeDefined();
+    expect(toast?.annotationType).toBe('v');
+    expect(toast?.text).toBeUndefined();
+    expect(svg).toContain('data-markui="status-icon"');
+    expect(svg).not.toContain('(v)');
+  });
+
+  it('should not treat ordinary titles starting with status letters as toasts', () => {
+    const src = [
+      '+--- Invoice ---+',
+      '| Details       |',
+      '+---------------+',
+    ].join('\n');
+    const { tree } = parse(src, { mode: 'autofix' });
+    expect(findByType(tree, 'Toast')).toBeUndefined();
+    expect(findByType(tree, 'Box')?.text).toBe('Invoice');
+  });
 });
 
 describe('visual regression fixtures', () => {

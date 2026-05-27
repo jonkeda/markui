@@ -35,24 +35,12 @@ Notes:
 
 ## Open Dropdown
 
-An open dropdown shows expanded state. It can be shown with or without visible options.
+An open dropdown shows expanded state with visible options.
 
 Syntax:
 
 - `<Label ^>`
-- Option rows followed by `->` when options are visible.
-
-Open without option rows:
-
-```text
-Country:
-<Germany ^>
-```
-
-```markui
-Country:
-<Germany ^>
-```
+- Option rows followed by `->`.
 
 Open with options:
 
@@ -150,4 +138,3 @@ Notes:
 
 - Use custom inputs sparingly.
 - Prefer native inputs when their syntax is clear enough.
-

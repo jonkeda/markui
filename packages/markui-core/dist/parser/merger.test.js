@@ -32,6 +32,21 @@ function findAllByType(node, type) {
         const ta = findByType(tree, 'Textarea');
         (0, vitest_1.expect)(ta).toBeDefined();
     });
+    (0, vitest_1.it)('should bind a label to an entire textarea run', () => {
+        const src = [
+            'Description:',
+            '<                        >',
+            '<                        >',
+            '<                        >',
+        ].join('\n');
+        const { tree } = (0, index_1.parse)(src, { mode: 'strict' });
+        const ff = findByType(tree, 'FormField');
+        const ta = findByType(tree, 'Textarea');
+        const inputs = findAllByType(tree, 'TextInput');
+        (0, vitest_1.expect)(ff).toBeDefined();
+        (0, vitest_1.expect)(ta).toBeDefined();
+        (0, vitest_1.expect)(inputs).toHaveLength(0);
+    });
     (0, vitest_1.it)('should parse a table with header and data rows', () => {
         const src = [
             '| Name  | Age |',
@@ -64,6 +79,38 @@ function findAllByType(node, type) {
         // Should contain annotation as child
         const ann = findByType(tree, 'Annotation');
         (0, vitest_1.expect)(ann).toBeDefined();
+    });
+    (0, vitest_1.it)('should bind expanded dropdown options to a labeled dropdown', () => {
+        const src = [
+            'Fruit:',
+            '<Apple ^>',
+            '  Apple',
+            '  Banana',
+            '  Orange',
+            '->',
+        ].join('\n');
+        const { tree } = (0, index_1.parse)(src, { mode: 'strict' });
+        const ff = findByType(tree, 'FormField');
+        const dropdown = findByType(tree, 'Dropdown');
+        const options = findAllByType(tree, 'DropdownOption');
+        const labels = findAllByType(tree, 'Label').map(label => label.text);
+        (0, vitest_1.expect)(ff).toBeDefined();
+        (0, vitest_1.expect)(dropdown?.state).toBe('expanded');
+        (0, vitest_1.expect)(options.map(option => option.text)).toEqual(['Apple', 'Banana', 'Orange']);
+        (0, vitest_1.expect)(labels).not.toContain('->');
+    });
+    (0, vitest_1.it)('should bind multi-select dropdown options to a labeled dropdown', () => {
+        const src = [
+            'Assignees:',
+            '<Team ^>',
+            '  [x] Alice',
+            '  [ ] Bob',
+            '->',
+        ].join('\n');
+        const { tree } = (0, index_1.parse)(src, { mode: 'strict' });
+        const options = findAllByType(tree, 'DropdownOption');
+        (0, vitest_1.expect)(options.map(option => option.text)).toEqual(['Alice', 'Bob']);
+        (0, vitest_1.expect)(options.map(option => option.state)).toEqual(['checked', 'unchecked']);
     });
 });
 //# sourceMappingURL=merger.test.js.map

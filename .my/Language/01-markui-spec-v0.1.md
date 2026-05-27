@@ -37,7 +37,7 @@ MarkUI documents can also be compiled to real UI frameworks (WPF, MAUI, HTML/CSS
 - All content is monospaced
 - One screen per file, no prose text
 - Multiple screens or explanatory text: use `.md` files with ` ```markui ` fenced blocks
-- Named blocks in `.md` files: ` ```markui:component-name ` makes blocks referenceable as `@component-name`
+- Named blocks in `.md` files: ` ```markui:@component-name ` makes blocks referenceable as `@component-name`
 - Icon meanings (`#N`) are defined in surrounding `.md` context, not inside wireframes
 
 ---

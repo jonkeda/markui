@@ -682,7 +682,7 @@ MarkUI wireframes in `.md` files use fenced code blocks:
 Named blocks are also supported:
 
 ````markdown
-```markui:login-form
+```markui:@login-form
 +--- Login ----
 | ...
 +----
@@ -710,7 +710,7 @@ export function markuiPlugin(md: MarkdownIt, options?: PluginOptions) {
     const token = tokens[idx];
     const info = token.info.trim();
 
-    // Match ```markui or ```markui:component-name
+    // Match ```markui or named fences such as ```markui:@component-name
     if (info === 'markui' || info.startsWith('markui:')) {
       return renderMarkuiBlock(token.content, defaultTheme, maxSize);
     }
@@ -1107,7 +1107,7 @@ The Wireframe extension parses a keyword-based DSL (indentation, named elements)
 | **TextMate grammar** | Keywords, modifiers, attributes | Brackets, borders, positional patterns |
 | **Folding** | Indentation-based | Box border markers (`+---` / `+--+`) |
 | **Outline** | Element tree by indentation | Box containment tree by spatial position |
-| **Markdown blocks** | ` ```wireframe ` | ` ```markui ` and ` ```markui:name ` |
+| **Markdown blocks** | ` ```wireframe ` | ` ```markui ` and ` ```markui:@name ` |
 | **Completion** | Element names, attributes | Bracket patterns, structural templates |
 
 The core innovation is that MarkUI's source code IS the visual layout — the parser must understand 2D spatial relationships, not just a token stream.

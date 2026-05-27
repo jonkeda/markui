@@ -57,6 +57,7 @@ export interface WidgetNode {
   children: WidgetNode[];
   iconIndex?: number;
   level?: number;     // heading level, nest level
+  typeName?: string;  // semantic container type, e.g. Modal or Drawer
   annotationType?: string;  // '?' '$' '!' 'i' 'x' 'v'
   percentage?: number;
   numerator?: number;

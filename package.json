@@ -6,6 +6,8 @@
     "visual": "pnpm --filter @jonkeda/markui-core visual",
     "visual:svg": "pnpm --filter @jonkeda/markui-core visual:svg",
     "visual:gallery": "pnpm --filter @jonkeda/markui-core visual:gallery",
+    "extension:install:insiders": "powershell -ExecutionPolicy Bypass -File scripts/build-install-vscode-extension.ps1",
+    "extension:package": "powershell -ExecutionPolicy Bypass -File scripts/build-install-vscode-extension.ps1 -SkipInstall",
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint"
   },

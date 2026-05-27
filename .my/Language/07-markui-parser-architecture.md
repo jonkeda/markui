@@ -109,7 +109,6 @@ Handle internal dividers: `+` on the top border with `|` below marks column divi
 | Border Pattern | Meaning        |
 |----------------|----------------|
 | `-` solid      | Regular box    |
-| `- - -` dashed | Drop zone      |
 | `.` on divider | Resize handle  |
 | `#` on border  | Scroll region  |
 | `v` corners    | Vertical list (repeatable) |

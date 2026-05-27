@@ -118,36 +118,6 @@ Password:
 [Login]
 ```
 
----
-
-## File Drop Zone
-
-A dashed border indicates a drop zone.
-
-Example:
-
-```text
-+- - - - - - - - - - - -+
-|                        |
-|   #1                   |
-|   Drag files here      |
-|   or [Browse]          |
-|                        |
-+- - - - - - - - - - - -+
-```
-
-```markui
-+- - - - - - - - - - - -+
-|                        |
-|   #1                   |
-|   Drag files here      |
-|   or [Browse]          |
-|                        |
-+- - - - - - - - - - - -+
-```
-
----
-
 ## Vertical List Container
 
 Use `v` corners for repeatable items that stack vertically.
@@ -409,4 +379,3 @@ Example:
 | Footer                           |
 +----------------------------------+
 ```
-

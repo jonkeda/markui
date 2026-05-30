@@ -1,3 +1,4 @@
+import { randomBytes } from 'crypto';
 import * as vscode from 'vscode';
 import { parse, compile, getTheme, renderToSvg } from '@jonkeda/markui-core';
 import type { WidgetNode, ParseError, Box } from '@jonkeda/markui-core';
@@ -5,12 +6,16 @@ import { markuiPlugin } from './markdown/plugin';
 
 let diagnosticCollection: vscode.DiagnosticCollection;
 let previewPanel: vscode.WebviewPanel | undefined;
-let currentTheme: string;
+let previewUpdateTimer: NodeJS.Timeout | undefined;
+let currentTheme: ThemeName;
 let currentZoom = 100;
+
+type ThemeName = 'clean' | 'sketch' | 'blueprint';
+const ALLOWED_THEMES = new Set<ThemeName>(['clean', 'sketch', 'blueprint']);
 
 export function activate(context: vscode.ExtensionContext) {
 	const config = vscode.workspace.getConfiguration('markui');
-	currentTheme = config.get<string>('defaultTheme', 'clean');
+	currentTheme = normalizeTheme(config.get<string>('defaultTheme', 'clean'));
 
 	diagnosticCollection = vscode.languages.createDiagnosticCollection('markui');
 	context.subscriptions.push(diagnosticCollection);
@@ -50,7 +55,7 @@ export function activate(context: vscode.ExtensionContext) {
 			if (e.document.languageId === 'markui') {
 				validateDocument(e.document);
 				if (config.get<boolean>('previewAutoRefresh', true)) {
-					updatePreview();
+					schedulePreviewUpdate();
 				}
 			}
 		})
@@ -99,6 +104,7 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
+	if (previewUpdateTimer) clearTimeout(previewUpdateTimer);
 	previewPanel?.dispose();
 }
 
@@ -171,22 +177,49 @@ function openPreview(context: vscode.ExtensionContext): void {
 	}, null, context.subscriptions);
 
 	previewPanel.webview.onDidReceiveMessage(message => {
-		switch (message.command) {
-			case 'zoomIn': adjustZoom(25); break;
-			case 'zoomOut': adjustZoom(-25); break;
-			case 'zoomReset': currentZoom = 100; updatePreview(); break;
-			case 'zoomFit': currentZoom = -1; updatePreview(); break;
-			case 'setZoom': currentZoom = message.value; updatePreview(); break;
-		}
+		handlePreviewMessage(message);
 	}, null, context.subscriptions);
 
 	updatePreview();
 }
 
+function schedulePreviewUpdate(): void {
+	if (previewUpdateTimer) clearTimeout(previewUpdateTimer);
+	previewUpdateTimer = setTimeout(() => {
+		previewUpdateTimer = undefined;
+		updatePreview();
+	}, 150);
+}
+
 function adjustZoom(delta: number): void {
 	if (currentZoom === -1) currentZoom = 100;
-	currentZoom = Math.max(25, Math.min(400, currentZoom + delta));
+	currentZoom = clampZoom(currentZoom + delta);
 	updatePreview();
+}
+
+function handlePreviewMessage(message: unknown): void {
+	if (!isRecord(message) || typeof message.command !== 'string') return;
+
+	switch (message.command) {
+		case 'zoomIn': adjustZoom(25); break;
+		case 'zoomOut': adjustZoom(-25); break;
+		case 'zoomReset': currentZoom = 100; updatePreview(); break;
+		case 'zoomFit': currentZoom = -1; updatePreview(); break;
+		case 'setZoom':
+			if (typeof message.value === 'number' && Number.isFinite(message.value)) {
+				currentZoom = clampZoom(message.value);
+				updatePreview();
+			}
+			break;
+	}
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null;
+}
+
+function clampZoom(value: number): number {
+	return Math.max(25, Math.min(400, Math.round(value)));
 }
 
 function updatePreview(): void {
@@ -229,19 +262,24 @@ function updatePreview(): void {
 		).join('')}</div>`
 		: '';
 
-	previewPanel.webview.html = getPreviewHtml(svg, zoomStyle, zoomLabel, errorsHtml, warningsHtml);
+	previewPanel.webview.html = getPreviewHtml(previewPanel.webview, svg, zoomStyle, zoomLabel, errorsHtml, warningsHtml);
 }
 
 function escapeHtml(text: string): string {
-	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
-function getPreviewHtml(svg: string, zoomStyle: string, zoomLabel: string, errorsHtml: string, warningsHtml: string): string {
+function getPreviewHtml(webview: vscode.Webview, svg: string, zoomStyle: string, zoomLabel: string, errorsHtml: string, warningsHtml: string): string {
+	const nonce = getNonce();
+	const escapedTheme = escapeHtml(currentTheme);
+	const escapedZoomLabel = escapeHtml(zoomLabel);
+
 	return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} data:; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
 <style>
 	* { margin: 0; padding: 0; box-sizing: border-box; }
 	body {
@@ -319,18 +357,18 @@ function getPreviewHtml(svg: string, zoomStyle: string, zoomLabel: string, error
 <body>
 	<div class="toolbar">
 		<button id="zoomOut" title="Zoom Out">−</button>
-		<span class="zoom-label" id="zoomLabel">${zoomLabel}</span>
+		<span class="zoom-label" id="zoomLabel">${escapedZoomLabel}</span>
 		<button id="zoomIn" title="Zoom In">+</button>
 		<button id="zoomReset" title="Reset Zoom">100%</button>
 		<button id="zoomFit" title="Fit to Width">Fit</button>
-		<span class="info">Theme: ${currentTheme}</span>
+		<span class="info">Theme: ${escapedTheme}</span>
 	</div>
 	${errorsHtml}
 	${warningsHtml}
 	<div class="preview-container">
 		<div class="preview-svg">${svg}</div>
 	</div>
-	<script>
+	<script nonce="${nonce}">
 		const vscode = acquireVsCodeApi();
 		document.getElementById('zoomIn').addEventListener('click', () => vscode.postMessage({ command: 'zoomIn' }));
 		document.getElementById('zoomOut').addEventListener('click', () => vscode.postMessage({ command: 'zoomOut' }));
@@ -359,6 +397,10 @@ function getPreviewHtml(svg: string, zoomStyle: string, zoomLabel: string, error
 	</script>
 </body>
 </html>`;
+}
+
+function getNonce(): string {
+	return randomBytes(16).toString('base64');
 }
 
 // --- Export to SVG ---
@@ -414,9 +456,13 @@ async function changeTheme(): Promise<void> {
 	);
 
 	if (picked) {
-		currentTheme = picked.label;
+		currentTheme = normalizeTheme(picked.label);
 		updatePreview();
 	}
+}
+
+function normalizeTheme(value: string | undefined): ThemeName {
+	return value && ALLOWED_THEMES.has(value as ThemeName) ? value as ThemeName : 'clean';
 }
 
 // --- Completion Provider ---

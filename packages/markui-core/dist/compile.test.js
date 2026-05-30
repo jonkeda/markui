@@ -301,6 +301,18 @@ function visualFixture(name) {
         (0, vitest_1.expect)(findByType(tree, 'Box')?.text).toBe('Invoice');
     });
 });
+(0, vitest_1.describe)('compile limits', () => {
+    (0, vitest_1.it)('reports a parser error instead of parsing oversized source', () => {
+        const result = (0, index_1.compile)('[Save]', { limits: { maxSourceBytes: 3 } });
+        (0, vitest_1.expect)(result.errors.some(error => error.code === 'SOURCE_TOO_LARGE')).toBe(true);
+        (0, vitest_1.expect)(result.tree.children).toEqual([]);
+    });
+    (0, vitest_1.it)('drops rendered SVG when the SVG output limit is exceeded', () => {
+        const result = (0, index_1.compile)('[Save]', { limits: { maxSvgBytes: 10 } });
+        (0, vitest_1.expect)(result.svg).toBe('');
+        (0, vitest_1.expect)(result.errors.some(error => error.code === 'SVG_TOO_LARGE')).toBe(true);
+    });
+});
 (0, vitest_1.describe)('visual regression fixtures', () => {
     (0, vitest_1.it)('keeps both columns in the column layout fixture', () => {
         const { tree } = (0, index_1.parse)(visualFixture('04-column-layout.markui'), { mode: 'autofix' });

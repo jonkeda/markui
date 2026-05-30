@@ -2,7 +2,7 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { compile } from '@jonkeda/markui-core';
+import { DEFAULT_MARKUI_LIMITS, compile, isLimitErrorCode } from '@jonkeda/markui-core';
 import {
   createValidationResult,
   getRepairHintForCode,
@@ -14,6 +14,9 @@ import * as z from 'zod/v4';
 
 const VERSION = '0.1.0';
 const modeSchema = z.enum(['strict', 'autofix']);
+const sourceSchema = z.string().max(DEFAULT_MARKUI_LIMITS.maxSourceBytes);
+const sourceNameSchema = z.string().max(256);
+const themeSchema = z.enum(['clean', 'sketch', 'blueprint']);
 
 if (process.argv.includes('--help') || process.argv.includes('-h')) {
   process.stdout.write(helpText());
@@ -34,13 +37,14 @@ server.registerTool('validate_markui', {
   title: 'Validate MarkUI',
   description: 'Validate MarkUI source text and return parser diagnostics using the shared MarkUI validation contract.',
   inputSchema: {
-    source: z.string().describe('Raw MarkUI source text.'),
+    source: sourceSchema.describe('Raw MarkUI source text.'),
     mode: modeSchema.optional().describe('Parser mode. Defaults to strict.'),
-    sourceName: z.string().optional().describe('Optional label to include in diagnostics, such as generated.markui.'),
+    sourceName: sourceNameSchema.optional().describe('Optional label to include in diagnostics, such as generated.markui.'),
   },
 }, async ({ source, mode, sourceName }) => {
   const parsedMode = parseMode(mode);
   const file = validateMarkuiSource(source, {
+    limits: DEFAULT_MARKUI_LIMITS,
     mode: parsedMode,
     path: sourceName ?? 'generated.markui',
   });
@@ -52,13 +56,14 @@ server.registerTool('validate_markdown_markui_blocks', {
   title: 'Validate Markdown MarkUI Blocks',
   description: 'Extract and validate fenced ```markui and ```markui:name blocks from markdown source text.',
   inputSchema: {
-    source: z.string().describe('Markdown source containing optional fenced MarkUI blocks.'),
+    source: sourceSchema.describe('Markdown source containing optional fenced MarkUI blocks.'),
     mode: modeSchema.optional().describe('Parser mode. Defaults to strict.'),
-    sourceName: z.string().optional().describe('Optional label to include in diagnostics, such as README.md.'),
+    sourceName: sourceNameSchema.optional().describe('Optional label to include in diagnostics, such as README.md.'),
   },
 }, async ({ source, mode, sourceName }) => {
   const parsedMode = parseMode(mode);
   const file = validateMarkdownMarkuiBlocks(source, {
+    limits: DEFAULT_MARKUI_LIMITS,
     mode: parsedMode,
     path: sourceName ?? 'document.md',
   });
@@ -70,15 +75,16 @@ server.registerTool('render_markui_svg', {
   title: 'Render MarkUI SVG',
   description: 'Render MarkUI source text to SVG. By default, rendering stops when strict validation reports errors.',
   inputSchema: {
-    source: z.string().describe('Raw MarkUI source text.'),
+    source: sourceSchema.describe('Raw MarkUI source text.'),
     mode: modeSchema.optional().describe('Parser mode. Defaults to strict.'),
-    theme: z.string().optional().describe('Renderer theme. Defaults to clean.'),
-    sourceName: z.string().optional().describe('Optional label to include in diagnostics, such as generated.markui.'),
+    theme: themeSchema.optional().describe('Renderer theme. Defaults to clean.'),
+    sourceName: sourceNameSchema.optional().describe('Optional label to include in diagnostics, such as generated.markui.'),
     force: z.boolean().optional().describe('Render even when validation reports errors.'),
   },
 }, async ({ source, mode, theme, sourceName, force }) => {
   const parsedMode = parseMode(mode);
   const validationFile = validateMarkuiSource(source, {
+    limits: DEFAULT_MARKUI_LIMITS,
     mode: parsedMode,
     path: sourceName ?? 'generated.markui',
   });
@@ -93,9 +99,19 @@ server.registerTool('render_markui_svg', {
   }
 
   const rendered = compile(source, {
+    limits: DEFAULT_MARKUI_LIMITS,
     mode: parsedMode,
     theme: theme ?? 'clean',
   });
+  const limitErrors = rendered.errors.filter(error => isLimitErrorCode(error.code));
+  if (limitErrors.length > 0) {
+    return structuredToolResult({
+      ok: false,
+      svg: null,
+      validation,
+      renderErrors: limitErrors,
+    }, true);
+  }
 
   return structuredToolResult({
     ok: validation.errorCount === 0,

@@ -1,4 +1,4 @@
-import { compile } from '@jonkeda/markui-core';
+import { DEFAULT_MARKUI_LIMITS, compile } from '@jonkeda/markui-core';
 import { detectTheme, getThemeForMode } from './theme-detector';
 
 function escapeHtml(text: string): string {
@@ -14,7 +14,11 @@ function renderMarkuiBlock(source: string, theme: string, maxSize: number): stri
 		return `<div class="markui-error">MarkUI block too large (${source.length} characters, max ${maxSize}).</div>`;
 	}
 	try {
-		const { svg, errors } = compile(source, { mode: 'autofix', theme });
+		const { svg, errors } = compile(source, {
+			limits: { ...DEFAULT_MARKUI_LIMITS, maxSourceBytes: maxSize },
+			mode: 'autofix',
+			theme,
+		});
 		const criticalErrors = errors.filter(e => e.severity === 'error');
 		if (criticalErrors.length > 0) {
 			const messages = criticalErrors

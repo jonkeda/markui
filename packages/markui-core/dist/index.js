@@ -17,6 +17,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.blueprintTheme = exports.sketchTheme = exports.cleanTheme = exports.getTheme = exports.renderToSvg = exports.parse = void 0;
 exports.compile = compile;
 __exportStar(require("./types"), exports);
+__exportStar(require("./limits"), exports);
 var parser_1 = require("./parser");
 Object.defineProperty(exports, "parse", { enumerable: true, get: function () { return parser_1.parse; } });
 var svg_renderer_1 = require("./renderer/svg-renderer");
@@ -29,11 +30,17 @@ Object.defineProperty(exports, "blueprintTheme", { enumerable: true, get: functi
 const parser_2 = require("./parser");
 const svg_renderer_2 = require("./renderer/svg-renderer");
 const themes_2 = require("./renderer/themes");
+const limits_1 = require("./limits");
 /** Convenience: parse + render in one call */
 function compile(source, options) {
-    const result = (0, parser_2.parse)(source, { mode: options?.mode });
+    const result = (0, parser_2.parse)(source, { mode: options?.mode, limits: options?.limits });
     const theme = (0, themes_2.getTheme)(options?.theme ?? 'clean');
-    const svg = (0, svg_renderer_2.renderToSvg)(result.tree, theme);
-    return { svg, errors: result.errors, tree: result.tree };
+    let svg = (0, svg_renderer_2.renderToSvg)(result.tree, theme);
+    const svgLimitErrors = (0, limits_1.validateSvgLimit)(svg, options?.limits);
+    const errors = [...result.errors, ...svgLimitErrors];
+    if (svgLimitErrors.length > 0) {
+        svg = '';
+    }
+    return { svg, errors, tree: result.tree };
 }
 //# sourceMappingURL=index.js.map

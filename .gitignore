@@ -1,6 +1,32 @@
 node_modules/
+packages/*/node_modules/
+
+# Build output for packages that do not commit dist artifacts.
+packages/markui-cli/dist/
+packages/markui-mcp/dist/
+packages/markui-validator/dist/
+
+# Local release/package artifacts.
+*.vsix
+
+# Test and visual output.
 test-results/
 packages/markui-core/test/visual/__generated__/
 packages/markui-core/test/visual/__diff__/
 packages/markui-vscode/test/visual/__generated__/
 packages/markui-vscode/test/visual/__diff__/
+coverage/
+.nyc_output/
+
+# TypeScript and tooling caches.
+*.tsbuildinfo
+.vite/
+.turbo/
+.cache/
+
+# Local logs.
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*

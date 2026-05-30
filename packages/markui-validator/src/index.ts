@@ -1,5 +1,5 @@
 import { parse } from '@jonkeda/markui-core';
-import type { ParseError, ParseMode } from '@jonkeda/markui-core';
+import type { ParseError, ParseMode, ParseLimits } from '@jonkeda/markui-core';
 
 export type { ParseError, ParseMode };
 
@@ -48,6 +48,7 @@ export interface MarkuiValidationResult {
 export interface ValidateSourceOptions {
   mode?: ParseMode;
   path?: string;
+  limits?: Partial<ParseLimits> | false;
 }
 
 export interface ValidateMarkdownOptions extends ValidateSourceOptions {}
@@ -57,6 +58,7 @@ interface BlockContext {
   blockName: string | null;
   blockIndex: number;
   blockStartLine: number;
+  limits?: Partial<ParseLimits> | false;
 }
 
 const MARKUI_FENCE_RE = /^([ \t]*)(`{3,}|~{3,})[ \t]*markui(?::([\w.-]+))?[^\S\r\n]*\r?\n([\s\S]*?)^\1\2[ \t]*(?:\r?\n|$)/gm;
@@ -79,6 +81,7 @@ export function validateMarkuiSource(source: string, options: ValidateSourceOpti
     blockName: null,
     blockIndex: 0,
     blockStartLine: 1,
+    limits: options.limits,
   });
 
   return buildFileResult({
@@ -105,6 +108,7 @@ export function validateMarkdownMarkuiBlocks(source: string, options: ValidateMa
       blockName,
       blockIndex: blocks.length,
       blockStartLine,
+      limits: options.limits,
     }));
   }
 
@@ -134,7 +138,7 @@ export function getRepairHintForCode(code: string): string | undefined {
 }
 
 function validateBlock(source: string, mode: ParseMode, context: BlockContext): MarkuiBlockResult {
-  const result = parse(source, { mode });
+  const result = parse(source, { mode, limits: context.limits });
   const errors = result.errors.map(error => toValidationDiagnostic(error, context));
   const counts = countDiagnostics(errors);
 

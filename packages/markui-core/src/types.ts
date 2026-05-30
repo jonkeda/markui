@@ -121,6 +121,7 @@ export interface ParseError {
 
 export interface ParseOptions {
   mode?: ParseMode;
+  limits?: Partial<ParseLimits> | false;
 }
 
 export interface ParseResult {
@@ -181,6 +182,15 @@ export interface RenderOptions {
   theme?: string;
   width?: number;
   height?: number;
+}
+
+export interface ParseLimits {
+  maxSourceBytes: number;
+  maxLines: number;
+  maxColumns: number;
+  maxBoxes: number;
+  maxTokens: number;
+  maxSvgBytes: number;
 }
 
 // === Pipeline Types (between parser phases) ===

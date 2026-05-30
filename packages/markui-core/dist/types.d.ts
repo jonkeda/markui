@@ -91,6 +91,7 @@ export interface ParseError {
 }
 export interface ParseOptions {
     mode?: ParseMode;
+    limits?: Partial<ParseLimits> | false;
 }
 export interface ParseResult {
     tree: WidgetNode;
@@ -147,6 +148,14 @@ export interface RenderOptions {
     theme?: string;
     width?: number;
     height?: number;
+}
+export interface ParseLimits {
+    maxSourceBytes: number;
+    maxLines: number;
+    maxColumns: number;
+    maxBoxes: number;
+    maxTokens: number;
+    maxSvgBytes: number;
 }
 export interface ContentEntry {
     lines: ContentLine[];

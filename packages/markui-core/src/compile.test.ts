@@ -322,6 +322,20 @@ describe('parse - complex scenarios', () => {
   });
 });
 
+describe('compile limits', () => {
+  it('reports a parser error instead of parsing oversized source', () => {
+    const result = compile('[Save]', { limits: { maxSourceBytes: 3 } });
+    expect(result.errors.some(error => error.code === 'SOURCE_TOO_LARGE')).toBe(true);
+    expect(result.tree.children).toEqual([]);
+  });
+
+  it('drops rendered SVG when the SVG output limit is exceeded', () => {
+    const result = compile('[Save]', { limits: { maxSvgBytes: 10 } });
+    expect(result.svg).toBe('');
+    expect(result.errors.some(error => error.code === 'SVG_TOO_LARGE')).toBe(true);
+  });
+});
+
 describe('visual regression fixtures', () => {
   it('keeps both columns in the column layout fixture', () => {
     const { tree } = parse(visualFixture('04-column-layout.markui'), { mode: 'autofix' });

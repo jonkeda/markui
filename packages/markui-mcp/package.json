@@ -1,0 +1,29 @@
+{
+  "name": "@jonkeda/markui-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for validating MarkUI diagrams",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "markui-mcp": "dist/index.js"
+  },
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc",
+    "test": "pnpm run build && node dist/index.js --help",
+    "lint": "tsc --noEmit -p tsconfig.lint.json"
+  },
+  "dependencies": {
+    "@jonkeda/markui-core": "workspace:*",
+    "@jonkeda/markui-validator": "workspace:*",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "typescript": "^5.4.0"
+  },
+  "files": [
+    "dist"
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": "../../packages",
+    "paths": {
+      "@jonkeda/markui-validator": ["../markui-validator/src/index.ts"]
+    }
+  }
+}

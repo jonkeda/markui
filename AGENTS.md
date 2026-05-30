@@ -16,7 +16,7 @@ Supporting areas:
 - `examples/`: `.markui` examples plus markdown files with fenced `markui` blocks.
 - `scripts/check-examples.cjs`: validates fenced `markui` blocks in markdown examples using the built core package.
 - `scripts/debug-tree.cjs`: local parser/tree inspection helper.
-- `.github/skills/markui/SKILL2.md`: LLM-facing MarkUI language guide; update it when language syntax changes.
+- `.github/skills/markui/SKILL.md`: LLM-facing MarkUI language guide; update it when language syntax changes.
 - `.my/Language/`: design/spec notes. Keep these aligned when changing the language.
 - `docs/superpowers/plans/`: implementation plans and change notes.
 - `Wireframes/`: git submodule/reference material. Do not edit it unless the task explicitly targets it.
@@ -50,7 +50,7 @@ Use pnpm from the repo root.
 - Keep public core exports routed through `packages/markui-core/src/index.ts`.
 - The core parse flow is `loadGrid` -> `detectBoxes` -> `extractContent` -> `tokenizeLines` -> `mergeMultiLine` -> `resolveLayout` -> `buildTree`.
 - Renderer changes usually need tests in `packages/markui-core/src/renderer/svg-renderer.test.ts`.
-- Parser or language syntax changes usually need updates in core tests, `examples/`, `packages/markui-vscode/syntaxes/markui.tmLanguage.json`, `packages/markui-vscode/snippets/markui.json`, `.github/skills/markui/SKILL2.md`, and `.my/Language/`.
+- Parser or language syntax changes usually need updates in core tests, `examples/`, `packages/markui-vscode/syntaxes/markui.tmLanguage.json`, `packages/markui-vscode/snippets/markui.json`, `.github/skills/markui/SKILL.md`, and `.my/Language/`.
 
 ## Testing Guidance
 

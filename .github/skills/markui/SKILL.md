@@ -84,6 +84,17 @@ Do not use `*---` card corners for new examples.
 6. Use component references for repeated dense blocks.
 7. Validate with the host project's MarkUI tools when available.
 
+## Validation Procedure
+
+Validate generated or edited MarkUI before finalizing whenever a validator is available:
+
+1. If an MCP tool named `validate_markui` or `validate_markdown_markui_blocks` is available, use it first.
+2. Otherwise, if a `markui` CLI is available, use `markui validate --stdin --format json` for raw MarkUI or add `--markdown` for markdown fences.
+3. In this repository, build the CLI first if needed with `pnpm --filter @jonkeda/markui-cli build`, then run `node packages/markui-cli/dist/index.js validate --stdin --format json`.
+4. If no validator is available, use the manual QA checks below.
+
+Treat JSON diagnostics as the source of truth. Fix reported `error` diagnostics before finalizing; mention any remaining warnings if they are intentional or blocked.
+
 ## Common Patterns
 
 ```markui

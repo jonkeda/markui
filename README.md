@@ -24,6 +24,20 @@ MarkUI is a lightweight language for drawing UI wireframes using plain text char
 
 Install the extension, open a `.markui` file, and press `Ctrl+Shift+V` to see the live preview.
 
+## Codex Skill
+
+This repo includes a Codex skill for authoring, editing, and validating MarkUI wireframes at `.github/skills/markui`.
+
+Install it globally for all local Codex projects from the repo root:
+
+```powershell
+$skillsRoot = if ($env:CODEX_HOME) { Join-Path $env:CODEX_HOME 'skills' } else { Join-Path $HOME '.codex\skills' }
+New-Item -ItemType Directory -Force -Path $skillsRoot | Out-Null
+Copy-Item -Recurse -Force .\.github\skills\markui (Join-Path $skillsRoot 'markui')
+```
+
+Restart Codex after installing so the `$markui` skill is picked up in new sessions.
+
 ## Features
 
 | Feature | Description |
